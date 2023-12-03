@@ -1,23 +1,76 @@
 # WiFi Motor Controller
+
 ## It's a work in progress ...
 
-So what is it?  I had this idea that a motor controller could communicate over wifi which would mean only power is required.
+## Introduction
+The WiFi Motor Controller is an innovative project that enables the control of a DC motor via WiFi, simplifying setups by eliminating the need for complex wiring beyond power supply. This project is perfect for hobbyists and professionals looking to integrate motor control into their wireless systems.
 
-Hardware notes to follow ... none of this is tested yet 
 
-By providing a basic API on the controller itself it can not only be incorporated into a project with basic wifi commands, but 
-could also me managed by a central management tool which could potentially offer more advanced features (more on that later).
+## Features
+- Remote control over WiFi
+- Customizable motor speed and direction
+- Onboard calibration for optimal performance
+- Easy web interface for setup and configuration
+- Unique serial number allocation for easy management
 
-The project is `wmc` and needs to be installed onto the Motor Controller's ESP8266.  The first time this is done over a USB
-connection, however once installed the unit becomes fully wireless and can be managed and updated over WiFi.
 
-Use the Aruino IDE for both the initial installation over USB and subsequent updates uning the OTA (Over The Air) connection.
+## Hardware
+The hardware consists of:
 
-The default IP Address after the initial flashing is `192.168.4.1` and is accessed after pointing your device at the `WMC-Config` network.  No password required, just connect to this network and browse to the default IP Address.
+* DC Motor         - Amazon: EsportsMJJ 775 Motor DC 12V-36V 3500-9000RPM
+* BTS7960          - 43A Motor Controller
+* AS5600           - Magnetic 12bit rotary encoder
+* ESP8266          - Microcontroller Dev Module
+* Custom Chassis   - 3d printed housing
+* Assorted fixings - Nuts and bolts
+ 
+The chassis is my design and both CAD and STL files will be included in the project when everything has been tested and fine tuned.
 
-This will present a basic form asking for SSID and password for your local WiFi network.  Complete the details and press the `SAVE` button. The device will restart and should pick up an IP Address from your router/dhcp server.  I would suggest making this address permanent as you don't want your project to fail because the Motor's IP address has changed!
+An AS5600 12bit encoder is used to sense the motor position and this is fed back to the microcontroller.  The microcontroller then controls the speed and direction of the motor by providing the appropriate PWM signals.
 
-Point you browser at the allocated IP address - e.g. `http://<your-controller-ip>/status` - and you'll see something like this: 
+For detailed information on the pin connections, please see the [Pin Connections](./pins.md) document.
+
+## Web Interface and Configuration
+
+The WiFi Motor Controller features a simple API, allowing for straightforward configuration and management directly over WiFi. This interface is key to setting up your controller and customising it for your specific needs.
+
+### Accessing the Web Interface
+Upon the initial setup, connect your device (like a laptop or smartphone) to the `WMC-Config` network. No password is needed for this initial connection. Once connected, navigate to `192.168.4.1` in your web browser. You'll be presented with a simple form to configure the WiFi settings of your motor controller.
+
+### Setting WiFi Credentials
+The web interface provides a basic form to enter the SSID and password of your WiFi network. Fill in these details and hit the `SAVE` button. The motor controller will restart and connect to your specified WiFi network. It's recommended to assign a static IP address to the motor controller in your router settings to avoid IP changes.
+
+### Device Configuration and Management
+Once connected to your WiFi network, the controller can be accessed at its new IP address. Here, you can:
+
+- **Check the Status:** Direct your browser to `http://<your-controller-ip>/status` to view the current configuration and status of your motor controller.
+- **Calibrate Your Motor:** Access `http://<your-controller-ip>/calibrate` to start the motor calibration process. This step is crucial for the optimal operation of your motor.
+- **Update PID Values:** Fine-tune the PID control loop parameters through `http://<your-controller-ip>/config`. This advanced feature is for users who are familiar with PID tuning and wish to customize the motor behavior further.
+
+### Calibration Process
+Before running the calibration, ensure that your motor is free to turn and that the power source is at its optimal level. The calibration routine involves several steps:
+
+1. **Determining Minimum Speed:** The controller gradually increases the PWM duty cycle to find the slowest speed at which the motor can operate reliably.
+2. **Estimating Maximum Speed:** The controller tests various speeds to predict the maximum operational speed without stressing the motor.
+3. **Storing Calibration Data:** Once both values are determined, they are saved on the controller, marking it as calibrated.
+
+After calibration, visiting `http://<your-controller-ip>/status` will show the min and max speed limits for your motor.
+
+### Advanced Features
+The motor controller uses a PID control loop for smooth operation. While default PID values are set, you may need to adjust them based on your motor and application. Caution is advised as PID tuning requires a good understanding of control systems.
+
+## Available commands are:
+/status             - to show the current motor status
+/calibrate          - to determine motor min and max rpm values
+/config             - to configure some basic parameters
+/speed?value=[n|-n] - set the desired speed in RPM.  A negative number denotes CCW and a positive number CW rotation.
+/hold               - attempt to keep the motor in the current position - if this draws too much power it may be removed
+/free               - allow the motor to turn freely without power.
+/factory_reset      - clear the EEPROM to remove all stored settings.
+
+
+### /status
+Direct your browser to the allocated IP address - e.g. `http://<your-controller-ip>/status` - and you'll see something like this: 
 ```
 {
   "firmwareVersion": "0.0.2",
@@ -40,23 +93,28 @@ Point you browser at the allocated IP address - e.g. `http://<your-controller-ip
 
 This indicates the motor controller is configured and ready to play.  Each Motor Controller will be allocated a unique serial number to allow it to be managed and identified easily.
 
-Calibration is required to allow the Motor Controller to determine the limits for your motor.
+### /calibrate: `http://<your-controller-ip>/calibrate` 
+This causes the motor controller to perform a test to see how slow and how fast the motor can turn.  This then stores the min and max values to be used later. 
 
-```
-`http://<your-controller-ip>/calibrate`
-```
-Before running the calibration routine:
-* ensure your motor is free to turn
-* ensure the power source is at optimum level (battery charged)
+### /config: `http://<your-controller-ip>/confg`
+A simple form is presented to allow values to be updated and stored to EEPROM.  This allows the PID controller to be tweaked and also the Name of the motor to be added. Having a name helps with later management.
 
-STEP 1: The calibration routine first determines the slowest speed the motor can run at.  DC motors are not like BLDC or Stepper Motors and there's going to be a minimum speed that the motor will turn at.  The motor controller will step up the PWM duty cycle until the motor moves. if this is 5rpm for example, you won't be able to instruct the motor to turn at 3rpm, it just won't work. In practice you probably want to double this lower number as a safe starting rpm.
+### /speed: `http://<your-controller-ip>/speed?value=[n|-n]`
+To make your configured motor turn you will need to call the speed command and pass a desired speed in RPM.  Providing a positive number causes the motor to turn in one direction and a negative number the other.  If you provide a value that is outside of the calibrated min and max values it will be ignored.  Use the `/free` command to stop your motor, don't set the RPM to 0
 
-STEP 2: The calibration routine now attempts to determine the highest speed by running at 10%, 20%, 30%, 40% and 50% then predicting the speed curve from the results and estimating the highest speed.  This is done so as not to stress your motor by running it at max speed.
+### /hold: `http://<your-controller-ip>/hold`
+This will take a note of the current position and attempt to hold the motor in that position.  I have concerns about this mode causing too much current to be pulled whilst the motor is not turning and moving air to cool down.  If this mode proves to be problematic it will be removed.
 
-STEP 3: when both values have been calculated they're stored on the controller and the device is flagged as calibrated.  Following this this Motor Controller is available to be used.
+### /free: `http://<your-controller-ip>/free`
+Set the motor free!! Stop sending PWM signals and allow the motor to turn freely without power.
 
-Running `http://<your-controller-ip>/status` again now will reveal the min and max speeds that can be used with this motor/controller/power source combination.
+### /factory_reset
+As the name suggests, this will wipe all stored data from the device and return it to its initial state.
 
-The Motor Controller employs a PID control loop to ensure smooth acceleration up to the desired speed.  The PID values can be changed to match your requirements using the `http://<your-controller-ip>/config` page.  Fine tuning a PID is a black-art and you should only tweak these values if you know what you're doing.
+This clears:
+* SSID and Password
+* Serial number
+* Name
+* Motor parameters
 
 
