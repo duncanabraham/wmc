@@ -3,6 +3,8 @@
 
 So what is it?  I had this idea that a motor controller could communicate over wifi which would mean only power is required.
 
+Hardware notes to follow ... none of this is tested yet 
+
 By providing a basic API on the controller itself it can not only be incorporated into a project with basic wifi commands, but 
 could also me managed by a central management tool which could potentially offer more advanced features (more on that later).
 
