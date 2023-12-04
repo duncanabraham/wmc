@@ -62,7 +62,7 @@ void MotorController::readGUID(char *guid)
   guid[GUID_LENGTH] = '\0'; // Ensure null-termination
 }
 
-String MotorController::getStatusJson(String FIRMWARE_VERSION)
+String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
 {
   double currentValue = getRPM(_actualSpeed);
   double targetValue = getRPM(_targetSpeed);
@@ -78,7 +78,8 @@ String MotorController::getStatusJson(String FIRMWARE_VERSION)
   json += "\"actualSpeed\":" + String(_actualSpeed) + ",";
   json += "\"targetSpeed\":" + String(_targetSpeed) + ",";
   json += "\"actualSpeedRPM\":" + String(currentValue) + ",";
-  json += "\"targetSpeedRPM\":" + String(targetValue);
+  json += "\"targetSpeedRPM\":" + String(targetValue) + ",";
+  json += "\"message\":\"" + String(message)+"\"";
   json += "}";
   return json;
 }

@@ -21,14 +21,16 @@ void ServerManager::handleClient() {
 
 void ServerManager::handleHold() {
     _motorController.hold();
-    _server.send(200, "text/plain", "Motor is holding position.");
+    String statusJson = _motorController.getStatusJson(_FIRMWARE_VERSION, "Hold Set");
+    _server.send(200, "application/json", statusJson);
 }
 
 void ServerManager::handleSpeed() {
     if (_server.hasArg("value")) {
         int speed = _server.arg("value").toInt(); // Assumes speed values are passed as query parameters.
         _motorController.setSpeed(speed);
-        _server.send(200, "text/plain", "Motor speed set.");
+        String statusJson = _motorController.getStatusJson(_FIRMWARE_VERSION, "Speed Set");
+        _server.send(200, "application/json", statusJson);
     } else {
         _server.send(400, "text/plain", "Speed value not provided.");
     }
@@ -36,11 +38,12 @@ void ServerManager::handleSpeed() {
 
 void ServerManager::handleFree() {
     _motorController.free();
-    _server.send(200, "text/plain", "Motor is free to turn.");
+    String statusJson = _motorController.getStatusJson(_FIRMWARE_VERSION, "Free Set");
+    _server.send(200, "application/json", statusJson);
 }
 
 void ServerManager::handleStatus() {
-    String statusJson = _motorController.getStatusJson(_FIRMWARE_VERSION);
+    String statusJson = _motorController.getStatusJson(_FIRMWARE_VERSION,"");
     _server.send(200, "application/json", statusJson);
 }
 

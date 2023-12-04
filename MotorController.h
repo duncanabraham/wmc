@@ -24,7 +24,7 @@ public:
     void setPIDParameters(double Kp, double Ki, double Kd);
     void clearEEPROM();
 
-    String getStatusJson(String FIRMWARE_VERSION);
+    String getStatusJson(String FIRMWARE_VERSION, String message);
 
 private:
     int _rpwmPin; // Right PWM pin

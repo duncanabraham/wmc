@@ -20,7 +20,7 @@
 
 SerialNumberManager serialNumberManager(GUID_START, GUID_LENGTH, GUID_MARKER);
 
-const String FIRMWARE_VERSION = "0.0.2";
+const String FIRMWARE_VERSION = "0.1.0";
 
 // Define the motor control pins.
 const int rpwmPin = 14; // Replace with your actual PWM pin.
@@ -67,9 +67,15 @@ void setup()
   }
 
   loadCredentials(ssid, password);
-  connectToWifi();
+  if (!connectToWifi()){
+    // Serial number is not valid. Enter AP mode for configuration.
+    Serial.println("Invalid or no Serial Number. Entering AP mode for configuration.");
+    apManager.startAPMode();
+    apMode = true;
+    return; // Stop further execution of setup() to remain in AP mode. 
+  }
 
-  WiFi.hostname("WMC-" + FIRMWARE_VERSION); // I want to set the hostname to a name stored in the Eeprom from setup
+  WiFi.hostname("WMC-" + String(serialNumber)); // I want to set the hostname to a name stored in the Eeprom from setup
   if (MDNS.begin("WMC-esp8266"))
   { // Start the mDNS responder for esp8266.local
     Serial.println("mDNS responder started");

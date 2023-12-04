@@ -1,5 +1,11 @@
 # Changelog
 
+0.1.0 - Fixed issue with AP mode when the network is not recognised
+* Return status after hold, free and speed commands
+* Fixed AP mode on new network
+* Added message to JSON data
+* Changed the Motor controller name to include the serial number
+
 0.0.2 - Adding new functionality that was provided by a 2nd module originally
 * AP mode when not configured
 * Serial Number generator
