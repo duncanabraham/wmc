@@ -7,6 +7,7 @@
 #include "MotorController.h"
 #include "SerialNumberManager.h"
 #include "APManager.h"
+#include "ServerManager.h"
 
 #define SSID_SIZE 32
 #define PASSWORD_SIZE 64
@@ -37,6 +38,8 @@ MotorController motorController;
 
 ESP8266WebServer server(80);
 APManager apManager("WMC-Config", server);
+
+ServerManager serverManager(server, motorController, FIRMWARE_VERSION);
 
 void resetWiFiSettings()
 {
@@ -76,45 +79,7 @@ void setup()
 
   motorController.init(rpwmPin, lpwmPin);
   // Define routes for commands.
-  server.on("/hold", HTTP_GET, []()
-            {
-    motorController.hold();
-    server.send(200, "text/plain", "Motor is holding position."); });
-
-  server.on("/speed", HTTP_GET, []()
-            {
-    if (server.hasArg("value")) {
-      int speed = server.arg("value").toInt(); // Assumes speed values are passed as query parameters.
-      motorController.setSpeed(speed);
-      server.send(200, "text/plain", "Motor speed set.");
-    } else {
-      server.send(400, "text/plain", "Speed value not provided.");
-    } });
-
-  server.on("/free", HTTP_GET, []()
-            {
-    motorController.free();
-    server.send(200, "text/plain", "Motor is free to turn."); });
-
-  server.on("/status", HTTP_GET, []()
-            {
-    String statusJson = motorController.getStatusJson(FIRMWARE_VERSION);
-    server.send(200, "application/json", statusJson); });
-
-  server.on("/calibrate", HTTP_GET, []()
-            {
-    motorController.calibrate();
-    server.send(200, "text/plain", "Motor Calibration Complete"); });
-
-  server.on("/factory_reset", HTTP_GET, []()
-            {
-    motorController.clearEEPROM();
-    server.send(200, "text/plain", "Motor Controller reset to defaults"); 
-    delay(3000);
-    ESP.restart(); 
-  });
-
-  server.begin();
+  serverManager.setupEndpoints();
   initializeOTA(); // Initialize OTA
 }
 

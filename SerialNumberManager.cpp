@@ -57,9 +57,29 @@ void SerialNumberManager::formatSerialNumber(char *serialNumber) {
 }
 
 bool SerialNumberManager::validateSerialNumber(const char *serialNumber) {
-    // Add more complex validation as needed
-    return strlen(serialNumber) == 36;
+    // Check the length first
+    if (strlen(serialNumber) != 36) {
+        return false;
+    }
+
+    // Check the positions of '-'
+    if (serialNumber[8] != '-' || serialNumber[13] != '-' || serialNumber[18] != '-' || serialNumber[23] != '-') {
+        return false;
+    }
+
+    // Check each character to be a valid hexadecimal digit
+    for (int i = 0; i < 36; ++i) {
+        if (i == 8 || i == 13 || i == 18 || i == 23) continue; // Skip '-' positions
+        if (!((serialNumber[i] >= '0' && serialNumber[i] <= '9') || 
+              (serialNumber[i] >= 'A' && serialNumber[i] <= 'F') || 
+              (serialNumber[i] >= 'a' && serialNumber[i] <= 'f'))) {
+            return false;
+        }
+    }
+
+    return true;
 }
+
 
 bool SerialNumberManager::isValid() {
     return _isValid;
