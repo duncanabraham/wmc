@@ -1,6 +1,5 @@
 #include "MotorController.h"
 #include <Wire.h>
-#include <EEPROM.h>
 
 #define AS5600_ADDRESS 0x36
 #define AS5600_RAW_ANGLE_REG 0x0C // Register for the 12-bit raw angle
@@ -14,11 +13,8 @@ const double Kp = 2.0; // Proportional gain
 const double Ki = 0.5; // Integral gain
 const double Kd = 0.1; // Derivative gain
 
-MotorController::MotorController()
-    : _pid(&_actualSpeed, &_output, &_targetSpeed, Kp, Ki, Kd, DIRECT)
-{
-
-}
+MotorController::MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor)
+    : _eepromConfig(eepromConfig), _aht21Sensor(aht21Sensor),  _pid(&_actualSpeed, &_output, &_targetSpeed, Kp, Ki, Kd, DIRECT) {}
 
 double MotorController::getRPM(double speed)
 {
@@ -32,7 +28,6 @@ void MotorController::init(int rpwmPin, int lpwmPin)
 
   _rpwmPin = rpwmPin;
   _lpwmPin = lpwmPin;
-  EEPROM.begin(512);
   Wire.begin();
 
   // Initialize the pins as outputs.
@@ -55,17 +50,16 @@ void MotorController::init(int rpwmPin, int lpwmPin)
 
 void MotorController::readGUID(char *guid)
 {
-  for (int i = 0; i < GUID_LENGTH; i++)
-  {
-    guid[i] = char(EEPROM.read(GUID_START + i));
-  }
-  guid[GUID_LENGTH] = '\0'; // Ensure null-termination
+  _eepromConfig.readGUID(guid);
 }
 
 String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
 {
   double currentValue = getRPM(_actualSpeed);
   double targetValue = getRPM(_targetSpeed);
+
+  float temperature = _aht21Sensor.readTemperature();
+  float humidity = _aht21Sensor.readHumidity();
 
   String json = "{";
   json += "\"firmwareVersion\":\"" + FIRMWARE_VERSION + "\",";
@@ -79,7 +73,9 @@ String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
   json += "\"targetSpeed\":" + String(_targetSpeed) + ",";
   json += "\"actualSpeedRPM\":" + String(currentValue) + ",";
   json += "\"targetSpeedRPM\":" + String(targetValue) + ",";
-  json += "\"message\":\"" + String(message)+"\"";
+  json += "\"temperature\":" + String(temperature) + ",";
+  json += "\"humidity\":" + String(humidity) + "\"";
+  json += "\"message\":\"" + String(message) + "\"";
   json += "}";
   return json;
 }
@@ -194,35 +190,34 @@ double MotorController::rpmToEncoderCountsPerSecond(double rpm)
 
 void MotorController::saveCalibrationData()
 {
-  EEPROM.put(CALIBRATION_DATA_START, _minOperationalSpeed);
-  EEPROM.put(CALIBRATION_DATA_START + sizeof(double), _maxOperationalSpeed);
-  EEPROM.put(CALIBRATION_STATE_ADDRESS, false); // false is true if you know what I mean ;)
-  EEPROM.commit(); // Don't forget to commit the changes to EEPROM
+  _eepromConfig.writeMinOperationalSpeed(_minOperationalSpeed);
+  _eepromConfig.writeMaxOperationalSpeed(_maxOperationalSpeed);
+  _eepromConfig.writeCalibrationState(false); // Writing false to indicate calibration is set
+
+  // No need to call commit here if writeConfig in EEPROMConfig already does it
 }
 
 void MotorController::loadCalibrationData()
 {
   // Check if calibration data exists
-  _isCalibrated = EEPROM.read(CALIBRATION_STATE_ADDRESS);
-  
-  if (!_isCalibrated) {
-    EEPROM.get(CALIBRATION_DATA_START, _minOperationalSpeed);
-    EEPROM.get(CALIBRATION_DATA_START + sizeof(double), _maxOperationalSpeed);
-  } else {
+  _isCalibrated = _eepromConfig.readCalibrationState();
+
+  if (!_isCalibrated)
+  {
+    _minOperationalSpeed = _eepromConfig.readMinOperationalSpeed();
+    _maxOperationalSpeed = _eepromConfig.readMaxOperationalSpeed();
+  }
+  else
+  {
     // If calibration data does not exist, use the default values
     _minOperationalSpeed = 0.0;
     _maxOperationalSpeed = 0.0;
   }
 }
 
-
 void MotorController::clearEEPROM()
 {
-  for (int i = 0; i < 512; i++)
-  {
-    EEPROM.write(i, 0xFF);
-  }
-  EEPROM.commit();
+  _eepromConfig.clearEEPROM();
 }
 
 float MotorController::calculateRpm(int startPosition, int endPosition, unsigned long timeMillis)

@@ -3,6 +3,8 @@
 
 #include "Arduino.h"
 #include <PID_v1.h>
+#include "AHT21Sensor.h"
+#include "EEPROMConfig.h"
 
 #define GUID_LENGTH 36                // Length of the GUID string
 #define GUID_START 100                // EEPROM address to store the GUID
@@ -12,7 +14,7 @@
 class MotorController
 {
 public:
-    MotorController();
+    MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor);
     void init(int rpwmPin, int lpwmPin);
     void setSpeed(double percentSpeed);
     void hold();
@@ -52,6 +54,9 @@ private:
     PID _pid; // PID controller object
 
     const int encoderCountsPerRevolution = 4096;
+
+    AHT21Sensor &_aht21Sensor;
+    EEPROMConfig &_eepromConfig;
 
     void setTargetSpeed(double speed);
     int readEncoder(); // Method to read the encoder position

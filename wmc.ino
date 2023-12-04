@@ -1,5 +1,4 @@
 #include <ESP8266WebServer.h>
-#include <EEPROM.h>
 #include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
@@ -8,6 +7,8 @@
 #include "SerialNumberManager.h"
 #include "APManager.h"
 #include "ServerManager.h"
+#include "EEPROMConfig.h"
+#include "AHT21Sensor.h"
 
 #define SSID_SIZE 32
 #define PASSWORD_SIZE 64
@@ -20,7 +21,7 @@
 
 SerialNumberManager serialNumberManager(GUID_START, GUID_LENGTH, GUID_MARKER);
 
-const String FIRMWARE_VERSION = "0.1.0";
+const String FIRMWARE_VERSION = "0.1.1";
 
 // Define the motor control pins.
 const int rpwmPin = 14; // Replace with your actual PWM pin.
@@ -33,13 +34,19 @@ char serialNumber[37];
 
 bool apMode = false;
 
+
+EEPROMConfig eepromConfig;
+AHT21Sensor aht21Sensor;
+
 // Create an instance of the MotorController class.
-MotorController motorController;
+MotorController motorController(eepromConfig, aht21Sensor);
 
 ESP8266WebServer server(80);
-APManager apManager("WMC-Config", server);
+APManager apManager("WMC-Config", server, eepromConfig);
 
 ServerManager serverManager(server, motorController, FIRMWARE_VERSION);
+
+
 
 void resetWiFiSettings()
 {
@@ -49,12 +56,13 @@ void resetWiFiSettings()
 void setup()
 {
   Serial.begin(115200);
-  EEPROM.begin(512); // Initialize EEPROM
+  eepromConfig.begin();
+  
   Serial.println();
   Serial.println("Starting WiFi Motor Controller (WMC) Version " + FIRMWARE_VERSION);
 
   serialNumberManager.begin();
-
+  
   serialNumberManager.readSerialNumber(serialNumber);
 
   if (!serialNumberManager.isValid())
@@ -67,12 +75,13 @@ void setup()
   }
 
   loadCredentials(ssid, password);
-  if (!connectToWifi()){
+  if (!connectToWifi())
+  {
     // Serial number is not valid. Enter AP mode for configuration.
     Serial.println("Invalid or no Serial Number. Entering AP mode for configuration.");
     apManager.startAPMode();
     apMode = true;
-    return; // Stop further execution of setup() to remain in AP mode. 
+    return; // Stop further execution of setup() to remain in AP mode.
   }
 
   WiFi.hostname("WMC-" + String(serialNumber)); // I want to set the hostname to a name stored in the Eeprom from setup
@@ -83,6 +92,8 @@ void setup()
     MDNS.addService("http", "tcp", 80);
   }
 
+  aht21Sensor.begin();
+
   motorController.init(rpwmPin, lpwmPin);
   // Define routes for commands.
   serverManager.setupEndpoints();
@@ -91,19 +102,8 @@ void setup()
 
 void loadCredentials(char *ssid, char *password)
 {
-  // Read SSID from EEPROM.
-  for (int i = 0; i < SSID_SIZE; i++)
-  {
-    ssid[i] = char(EEPROM.read(i));
-  }
-  ssid[SSID_SIZE] = '\0'; // Ensure null termination.
-
-  // Read Password from EEPROM.
-  for (int i = 0; i < PASSWORD_SIZE; i++)
-  {
-    password[i] = char(EEPROM.read(SSID_SIZE + i));
-  }
-  password[PASSWORD_SIZE] = '\0'; // Ensure null termination.
+  eepromConfig.readSSID(ssid);
+  eepromConfig.readPassword(password);
 }
 
 bool connectToWifi()
@@ -175,6 +175,7 @@ void loop()
   }
   else
   {
+    aht21Sensor.update();
     server.handleClient();
     motorController.update();
     ArduinoOTA.handle(); // Handle OTA

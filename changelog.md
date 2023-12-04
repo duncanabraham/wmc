@@ -1,5 +1,10 @@
 # Changelog
 
+0.1.1 - Moved eeprom tasks into a new class
+* Moved eeprom read and write functions into a new class
+* Updated references to eeprom to use the new class
+* Added AHT21 Temperature and Humidity sensor
+
 0.1.0 - Fixed issue with AP mode when the network is not recognised
 * Return status after hold, free and speed commands
 * Fixed AP mode on new network

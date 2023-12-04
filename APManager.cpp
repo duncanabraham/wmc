@@ -1,12 +1,13 @@
 #include "APManager.h"
-#include <EEPROM.h>
+
 
 #define SSID_SIZE 32
 #define PASSWORD_SIZE 64
 #define MAX_ATTEMPTS 10
 
-APManager::APManager(const char* apSSID, ESP8266WebServer& server)
-    : _apSSID(apSSID), _server(server) {}
+APManager::APManager(const char* apSSID, ESP8266WebServer& server, EEPROMConfig& eepromConfig)
+    : _apSSID(apSSID), _server(server), _eepromConfig(eepromConfig) {}
+
 
 void APManager::startAPMode() {
     WiFi.softAP(_apSSID);
@@ -16,6 +17,7 @@ void APManager::startAPMode() {
     _server.on("/setup", HTTP_POST, std::bind(&APManager::handleSetup, this));
 
     _server.begin(); // Start the web server
+
 }
 
 void APManager::handleClient() {
@@ -58,12 +60,7 @@ void APManager::handleSetup() {
     ESP.restart(); 
 }
 
-void APManager::storeCredentials(const char* ssid, const char* password) {
-    for (int i = 0; i < SSID_SIZE; i++) {
-        EEPROM.write(i, ssid[i]);
-    }
-    for (int i = 0; i < PASSWORD_SIZE; i++) {
-        EEPROM.write(SSID_SIZE + i, password[i]);
-    }
-    EEPROM.commit();
+void APManager::storeCredentials(char* ssid, char* password) {
+    _eepromConfig.writeSSID(ssid);
+    _eepromConfig.writePassword(password);
 }
