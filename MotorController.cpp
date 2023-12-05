@@ -14,7 +14,7 @@ const double Ki = 0.5; // Integral gain
 const double Kd = 0.1; // Derivative gain
 
 MotorController::MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor)
-    : _eepromConfig(eepromConfig), _aht21Sensor(aht21Sensor),  _pid(&_actualSpeed, &_output, &_targetSpeed, Kp, Ki, Kd, DIRECT) {}
+    : _eepromConfig(eepromConfig), _aht21Sensor(aht21Sensor), _pid(&_actualSpeed, &_output, &_targetSpeed, Kp, Ki, Kd, DIRECT) {}
 
 double MotorController::getRPM(double speed)
 {
@@ -93,7 +93,7 @@ void MotorController::free()
   analogWrite(_lpwmPin, 0);
 }
 
-int MotorController::readEncoder()
+uint16_t MotorController::readEncoder()
 {
   Wire.beginTransmission(AS5600_ADDRESS);
   Wire.write(AS5600_RAW_ANGLE_REG); // Set the register pointer to (0x0C)
@@ -102,9 +102,10 @@ int MotorController::readEncoder()
   Wire.requestFrom(AS5600_ADDRESS, 2); // Request 2 bytes from the raw angle register
   if (Wire.available() == 2)
   {
-    int highByte = Wire.read();
-    int lowByte = Wire.read();
-    return (highByte << 8) | lowByte; // Combine the two bytes
+    uint16_t rawAngle = Wire.read() << 8; // Read high byte and shift left
+    rawAngle |= Wire.read();              // Read low byte and combine with high byte
+    Serial.println(rawAngle);
+    return rawAngle;
   }
   else
   {
@@ -132,7 +133,8 @@ void MotorController::update()
     int newPosition = currentPosition; // Implement this function based on your encoder
 
     // Calculate speed as a difference in position over time
-    _actualSpeed = (newPosition - _lastPosition) / timeChange * 1000.0; // Converts to units per second
+  //  _actualSpeed = (newPosition - _lastPosition) / timeChange * 1000.0; // Converts to units per second
+    _actualSpeed = static_cast<double>(newPosition - _lastPosition) / timeChange * 1000.0;
 
     // Update the PID controller
     _pid.Compute();
