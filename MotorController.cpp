@@ -74,7 +74,7 @@ String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
   json += "\"actualSpeedRPM\":" + String(currentValue) + ",";
   json += "\"targetSpeedRPM\":" + String(targetValue) + ",";
   json += "\"temperature\":" + String(temperature) + ",";
-  json += "\"humidity\":" + String(humidity) + "\"";
+  json += "\"humidity\":" + String(humidity) + ",";
   json += "\"message\":\"" + String(message) + "\"";
   json += "}";
   return json;
