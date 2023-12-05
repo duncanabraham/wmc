@@ -41,6 +41,19 @@ o  M+
 o  M-
 ```
 
+BTS7960 Coloured Wires
+```
+1 - Purple
+2 - Blue
+3 - Orange
+4 - Red
+5 - Black
+6 - Brown
+7 - White
+8 - Grey
+```
+
+
 Connections:
 ```
 ESP8266     AS5600     BTS7960      AHT21
