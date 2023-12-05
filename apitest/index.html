@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Robot Data Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Robot Status</h1>
+    <canvas id="speedChart"></canvas>
+    <script>
+        const ctx = document.getElementById('speedChart').getContext('2d');
+        const speedChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Time or Data Points
+                datasets: [{
+                    label: 'Actual Speed',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }, {
+                    label: 'Target Speed',
+                    data: [],
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        async function fetchData() {
+            const response = await fetch('http://localhost:3000/data');
+            const data = await response.json();
+            return data;
+        }
+
+        function updateChart(data) {
+            speedChart.data.labels.push(/* New Time or Data Point */);
+            speedChart.data.datasets[0].data.push(data.actualSpeed);
+            speedChart.data.datasets[1].data.push(data.targetSpeed);
+            speedChart.update();
+        }
+
+        setInterval(async () => {
+            const data = await fetchData();
+            updateChart(data);
+        }, 1000); // Update every second
+    </script>
+</body>
+</html>
