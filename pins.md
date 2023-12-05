@@ -19,6 +19,12 @@ AS5600  (A)
                     o  GPO  4
 ```
 
+AHT21 
+1  VIN
+2  GND
+3  SCL
+4  SDA
+
 
 BTS7960  (B)
 ```
@@ -37,11 +43,11 @@ o  M-
 
 Connections:
 ```
-ESP8266     AS5600     BTS7960
-3v3         VCC (1)   
-GND         GND (3)    GND (5)
-D1 (GPIO5)             SCL (6)
-D2 (GPIO4)             SDA (5)
+ESP8266     AS5600     BTS7960      AHT21
+3v3         VCC (1)                 VIN (1)
+GND         GND (3)    GND (5)      GND (2)
+D1 (GPIO5)             SCL (6)      SCL (3)
+D2 (GPIO4)             SDA (5)      SDA (4)
 D5 (GPIO14)            RPWM (1)
 D6 (GPIO12)            LPWM (8)
 D7 (GPIO13)            R_EN (2)
