@@ -9,6 +9,24 @@ app.use(cors()) // Enable CORS for frontend access
 
 const API_TIMEOUT = 5000 // 5 seconds timeout
 
+const dummyData = {
+  firmwareVersion: '0.1.3',
+  serialNumber: '123',
+  calibrated: 'false',
+  pid: { kp: 2, ki: 0.5, kd: 0.01 },
+  direction: 'CW',
+  minSpeed: 15,
+  maxSpeed: 9000,
+  position: 3212,
+  actualSpeed: 0,
+  targetSpeed: 100,
+  actualSpeedRPM: 10,
+  targetSpeedRPM: 50,
+  temperature: 24.43,
+  humidity: 34.67,
+  message: ''
+}
+
 async function fetchData () {
   try {
     const response = await axios.get(API_URL, { timeout: API_TIMEOUT })
@@ -26,7 +44,7 @@ async function fetchData () {
       // Something else happened in setting up the request
       console.error('Error:', error.message)
     }
-    return null
+    return dummyData
   }
 }
 
