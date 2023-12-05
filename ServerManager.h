@@ -18,6 +18,8 @@ private:
     void handleHold();
     void handleSpeed();
     void handleFree();
+    void handleBrake();
+    void handleRelease();
     void handleStatus();
     void handleCalibrate();
     void handleFactoryReset();

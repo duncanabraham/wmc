@@ -28,6 +28,8 @@ void MotorController::init(int rpwmPin, int lpwmPin, int renPin, int lenPin)
 
   _rpwmPin = rpwmPin;
   _lpwmPin = lpwmPin;
+  _renPin = renPin;
+  _lenPin = lenPin;
 
   Wire.begin();
 
@@ -72,9 +74,9 @@ String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
   json += "\"serialNumber\":\"" + String(_serialNumber) + "\",";
   json += "\"calibrated\":" + String(!_isCalibrated ? "true" : "false") + ",";
   json += "\"pid\":{\"kp\":" + String(Kp) + ",\"ki\":" + String(Ki) + ",\"kd\":" + String(Kd) + "},";
-  json += "\"direction\":\"" + _direction + "\",";  
-  json += "\"minSpeed\":" + String(_minOperationalSpeed || 0) + ",";
-  json += "\"maxSpeed\":" + String(_maxOperationalSpeed || 0) + ",";
+  json += "\"direction\":\"" + _direction + "\",";
+  json += "\"minSpeed\":" + String(_minOperationalSpeed) + ",";
+  json += "\"maxSpeed\":" + String(_maxOperationalSpeed) + ",";
   json += "\"position\":" + String(currentPosition) + ",";
   json += "\"actualSpeed\":" + String(_actualSpeed) + ",";
   json += "\"targetSpeed\":" + String(_targetSpeed) + ",";
@@ -93,7 +95,8 @@ void MotorController::hold()
   _isHolding = true;             // Set the flag to indicate hold mode
 }
 
-void MotorController::brake(){
+void MotorController::brake()
+{
   _isHolding = false;
   digitalWrite(_lenPin, HIGH);
   digitalWrite(_renPin, HIGH);
@@ -101,7 +104,8 @@ void MotorController::brake(){
   digitalWrite(_rpwmPin, HIGH);
 }
 
-void MotorController::release(){
+void MotorController::release()
+{
   _isHolding = false;
   digitalWrite(_lenPin, LOW);
   digitalWrite(_renPin, LOW);
@@ -118,23 +122,22 @@ void MotorController::free()
   digitalWrite(_renPin, LOW);
 }
 
-uint16_t MotorController::readEncoder()
+int MotorController::readEncoder()
 {
   Wire.beginTransmission(AS5600_ADDRESS);
-  Wire.write(AS5600_RAW_ANGLE_REG); // Set the register pointer to (0x0C)
-  Wire.endTransmission(false);      // End transmission, but keep the connection active
+  Wire.write(AS5600_RAW_ANGLE_REG);
+  Wire.endTransmission(false);
 
-  Wire.requestFrom(AS5600_ADDRESS, 2); // Request 2 bytes from the raw angle register
+  Wire.requestFrom(AS5600_ADDRESS, 2);
   if (Wire.available() == 2)
   {
-    uint16_t rawAngle = Wire.read() << 8; // Read high byte and shift left
-    rawAngle |= Wire.read();              // Read low byte and combine with high byte
-    Serial.println(rawAngle);
-    return rawAngle;
+    uint16_t rawAngle = Wire.read() << 8;
+    rawAngle |= Wire.read();
+    return static_cast<int>(rawAngle);
   }
   else
   {
-    return -1; // Error in communication
+    return -1; // Indicate an error
   }
 }
 
@@ -158,7 +161,7 @@ void MotorController::update()
     int newPosition = currentPosition; // Implement this function based on your encoder
 
     // Calculate speed as a difference in position over time
-  //  _actualSpeed = (newPosition - _lastPosition) / timeChange * 1000.0; // Converts to units per second
+    //  _actualSpeed = (newPosition - _lastPosition) / timeChange * 1000.0; // Converts to units per second
     _actualSpeed = static_cast<double>(newPosition - _lastPosition) / timeChange * 1000.0;
 
     // Update the PID controller
@@ -251,36 +254,33 @@ void MotorController::clearEEPROM()
 
 float MotorController::calculateRpm(int startPosition, int endPosition, unsigned long timeMillis)
 {
-  const double encoderCountsPerRevolution = 4096; // For a 12-bit encoder
-  // Calculate the number of encoder counts between the start and end positions.
   int countDifference = abs(endPosition - startPosition);
-  // Calculate the number of revolutions.
   double revolutions = static_cast<double>(countDifference) / encoderCountsPerRevolution;
-  // Convert milliseconds to hours for RPM calculation.
-  double timeHours = static_cast<double>(timeMillis) / 3600000.0;
-  // Calculate RPM.
-  double rpm = revolutions / timeHours;
+  double timeMinutes = static_cast<double>(timeMillis) / 60000.0; // Convert milliseconds to minutes
+  double rpm = revolutions / timeMinutes;
   return static_cast<float>(rpm);
 }
 
 void MotorController::calibrate()
 {
-  int calibrationDelay = 50;           // 5 seconds delay to allow the motor to respond
-  float maxTestSpeed = 10.0;           // Upper limit for the test speed in RPM
-  float speedIncrement = 0.1;          // Increment speed in RPM
-  _minOperationalSpeed = maxTestSpeed; // Assume the worst case until found otherwise
-
-  int startPosition = readEncoder();  
+  const int maxAttempts = 100; // Set an appropriate limit
+  int calibrationDelay = 50;
+  float maxTestSpeed = 10.0;
+  float speedIncrement = 0.1;
+  _minOperationalSpeed = maxTestSpeed;
+  int startPosition = readEncoder();
   bool movementDetected = false;
+  int attempts = 0;
 
-  for (float speed = 0.1; speed <= maxTestSpeed; speed += speedIncrement)
+  for (float speed = 0.1; speed <= maxTestSpeed && attempts < maxAttempts; speed += speedIncrement)
   {
     setSpeed(speed);
     delay(calibrationDelay);
+    attempts++;
 
     currentPosition = readEncoder();
     if (abs(currentPosition - startPosition) > 2)
-    { // someThreshold to detect actual movement
+    {
       _minOperationalSpeed = speed;
       movementDetected = true;
       break;

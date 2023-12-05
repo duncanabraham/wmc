@@ -24,8 +24,10 @@ SerialNumberManager serialNumberManager(GUID_START, GUID_LENGTH, GUID_MARKER);
 const String FIRMWARE_VERSION = "0.1.2";
 
 // Define the motor control pins.
-const int rpwmPin = 14; // Replace with your actual PWM pin.
-const int lpwmPin = 12; // Replace with your actual Direction pin.
+const int rpwmPin = 14; 
+const int lpwmPin = 12;
+const int renPin = 13;
+const int lenPin = 15;
 
 char ssid[SSID_SIZE + 1];
 char password[PASSWORD_SIZE + 1];
@@ -94,7 +96,7 @@ void setup()
 
   aht21Sensor.begin();
 
-  motorController.init(rpwmPin, lpwmPin);
+  motorController.init(rpwmPin, lpwmPin, renPin, lenPin);
   // Define routes for commands.
   serverManager.setupEndpoints();
   initializeOTA(); // Initialize OTA

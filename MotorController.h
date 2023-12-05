@@ -64,7 +64,7 @@ private:
     EEPROMConfig &_eepromConfig;
 
     void setTargetSpeed(double speed);
-    uint16_t readEncoder(); // Method to read the encoder position
+    int readEncoder(); // Method to read the encoder position
     double rpmToEncoderCountsPerSecond(double rpm);
     void readGUID(char *guid);
     void setDirection(String direction);
