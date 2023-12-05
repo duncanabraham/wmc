@@ -43,6 +43,7 @@ private:
 
     int _holdPosition; // Target position for holding
     bool _isHolding;   // Flag to indicate if the motor is in hold mode
+    int currentPosition; // raw value from the encoder
 
     double _minOperationalSpeed; // Minimum operational speed
     double _maxOperationalSpeed; // Maximum operational speed

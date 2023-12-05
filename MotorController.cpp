@@ -66,9 +66,10 @@ String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
   json += "\"serialNumber\":\"" + String(_serialNumber) + "\",";
   json += "\"calibrated\":" + String(!_isCalibrated ? "true" : "false") + ",";
   json += "\"pid\":{\"kp\":" + String(Kp) + ",\"ki\":" + String(Ki) + ",\"kd\":" + String(Kd) + "},";
-  json += "\"direction\":\"" + _direction + "\",";
+  json += "\"direction\":\"" + _direction + "\",";  
   json += "\"minSpeed\":" + String(_minOperationalSpeed || 0) + ",";
   json += "\"maxSpeed\":" + String(_maxOperationalSpeed || 0) + ",";
+  json += "\"position\":" + String(currentPosition) + ",";
   json += "\"actualSpeed\":" + String(_actualSpeed) + ",";
   json += "\"targetSpeed\":" + String(_targetSpeed) + ",";
   json += "\"actualSpeedRPM\":" + String(currentValue) + ",";
@@ -118,7 +119,7 @@ void MotorController::update()
   unsigned long currentTime = millis();
   unsigned long timeChange = (currentTime - _lastUpdateTime);
 
-  int currentPosition = readEncoder();
+  currentPosition = readEncoder();
   if (timeChange >= SampleTime)
   {
     if (_isHolding)
@@ -243,8 +244,7 @@ void MotorController::calibrate()
   float speedIncrement = 0.1;          // Increment speed in RPM
   _minOperationalSpeed = maxTestSpeed; // Assume the worst case until found otherwise
 
-  int startPosition = readEncoder();
-  int currentPosition;
+  int startPosition = readEncoder();  
   bool movementDetected = false;
 
   for (float speed = 0.1; speed <= maxTestSpeed; speed += speedIncrement)
@@ -271,7 +271,7 @@ void MotorController::calibrate()
     analogWrite(_rpwmPin, pwmValue);        // Set motor speed
     delay(1000);                            // Delay to stabilize speed
 
-    int currentPosition = readEncoder();
+    currentPosition = readEncoder();
     float currentRpm = calculateRpm(_lastPosition, currentPosition, 5000);
     recordedRpms.push_back(currentRpm);
 
