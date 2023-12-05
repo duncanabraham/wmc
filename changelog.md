@@ -1,5 +1,10 @@
 # Changelog
 
+0.1.2 - Some new API commands
+* Ensure enable pins are high
+* Added "brake" command
+* Address "release" command
+
 0.1.1 - Moved eeprom tasks into a new class
 * Moved eeprom read and write functions into a new class
 * Updated references to eeprom to use the new class

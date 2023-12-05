@@ -15,10 +15,12 @@ class MotorController
 {
 public:
     MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor);
-    void init(int rpwmPin, int lpwmPin);
+    void init(int rpwmPin, int lpwmPin, int renPin, int lenPin);
     void setSpeed(double percentSpeed);
     void hold();
     void free();
+    void brake();
+    void release();
     void update();    // Make this public so it can be called from loop()
     void calibrate(); // Method for calibration
     void factoryReset();
@@ -31,6 +33,8 @@ public:
 private:
     int _rpwmPin; // Right PWM pin
     int _lpwmPin; // Left PWM pin
+    int _lenPin; // Left Enable pin 
+    int _renPin; // Right Enable pin
 
     double _targetSpeed; // Target speed set by the user
     double _actualSpeed; // Actual speed read from the encoder

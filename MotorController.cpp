@@ -21,18 +21,24 @@ double MotorController::getRPM(double speed)
   return speed * 60.0 / encoderCountsPerRevolution;
 }
 
-void MotorController::init(int rpwmPin, int lpwmPin)
+void MotorController::init(int rpwmPin, int lpwmPin, int renPin, int lenPin)
 {
   _minOperationalSpeed = 0.0; // Default min speed
   _maxOperationalSpeed = 0.0; // Default max speed
 
   _rpwmPin = rpwmPin;
   _lpwmPin = lpwmPin;
+
   Wire.begin();
 
   // Initialize the pins as outputs.
   pinMode(_rpwmPin, OUTPUT);
   pinMode(_lpwmPin, OUTPUT);
+
+  pinMode(_lenPin, OUTPUT);
+  pinMode(_renPin, OUTPUT);
+  digitalWrite(_lenPin, HIGH);
+  digitalWrite(_renPin, HIGH);
 
   // Initialization code...
   _pid.SetOutputLimits(-255, 255); // Set output limits to match PWM range
@@ -87,11 +93,29 @@ void MotorController::hold()
   _isHolding = true;             // Set the flag to indicate hold mode
 }
 
+void MotorController::brake(){
+  _isHolding = false;
+  digitalWrite(_lenPin, HIGH);
+  digitalWrite(_renPin, HIGH);
+  digitalWrite(_lpwmPin, HIGH);
+  digitalWrite(_rpwmPin, HIGH);
+}
+
+void MotorController::release(){
+  _isHolding = false;
+  digitalWrite(_lenPin, LOW);
+  digitalWrite(_renPin, LOW);
+  digitalWrite(_lpwmPin, LOW);
+  digitalWrite(_rpwmPin, LOW);
+}
+
 void MotorController::free()
 {
   _isHolding = false;
   analogWrite(_rpwmPin, 0);
   analogWrite(_lpwmPin, 0);
+  digitalWrite(_lenPin, LOW);
+  digitalWrite(_renPin, LOW);
 }
 
 uint16_t MotorController::readEncoder()
@@ -183,6 +207,8 @@ void MotorController::setTargetSpeed(double speed)
 {
   _targetSpeed = speed;
   _pid.SetMode(AUTOMATIC); // Enable the PID controller if not already enabled
+  digitalWrite(_lenPin, HIGH);
+  digitalWrite(_renPin, HIGH);
 }
 
 double MotorController::rpmToEncoderCountsPerSecond(double rpm)

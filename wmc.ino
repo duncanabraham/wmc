@@ -21,7 +21,7 @@
 
 SerialNumberManager serialNumberManager(GUID_START, GUID_LENGTH, GUID_MARKER);
 
-const String FIRMWARE_VERSION = "0.1.1";
+const String FIRMWARE_VERSION = "0.1.2";
 
 // Define the motor control pins.
 const int rpwmPin = 14; // Replace with your actual PWM pin.

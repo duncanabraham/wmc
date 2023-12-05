@@ -7,6 +7,8 @@ void ServerManager::setupEndpoints() {
     _server.on("/hold", HTTP_GET, std::bind(&ServerManager::handleHold, this));
     _server.on("/speed", HTTP_GET, std::bind(&ServerManager::handleSpeed, this));
     _server.on("/free", HTTP_GET, std::bind(&ServerManager::handleFree, this));
+    _server.on("/brake", HTTP_GET, std::bind(&ServerManager::handleBrake, this));
+    _server.on("/release", HTTP_GET, std::bind(&ServerManager::handleRelease, this));
     _server.on("/status", HTTP_GET, std::bind(&ServerManager::handleStatus, this));
     _server.on("/calibrate", HTTP_GET, std::bind(&ServerManager::handleCalibrate, this));
     _server.on("/factory_reset", HTTP_GET, std::bind(&ServerManager::handleFactoryReset, this));
@@ -39,6 +41,18 @@ void ServerManager::handleSpeed() {
 void ServerManager::handleFree() {
     _motorController.free();
     String statusJson = _motorController.getStatusJson(_FIRMWARE_VERSION, "Free Set");
+    _server.send(200, "application/json", statusJson);
+}
+
+void ServerManager::handleBrake() {
+    _motorController.brake();
+    String statusJson = _motorController.getStatusJson(_FIRMWARE_VERSION, "Brake Applied");
+    _server.send(200, "application/json", statusJson);
+}
+
+void ServerManager::handleRelease() {
+    _motorController.release();
+    String statusJson = _motorController.getStatusJson(_FIRMWARE_VERSION, "Brake Released");
     _server.send(200, "application/json", statusJson);
 }
 
