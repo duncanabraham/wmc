@@ -7,6 +7,8 @@ The WiFi Motor Controller is an innovative project that enables the control of a
 
 I don't know anyone else doing this and initial testing is going well. I think this could be a game changer for hobby robot projects.
 
+![image](https://github.com/duncanabraham/wmc/assets/5994927/b1716846-3414-4d9a-984a-ab04700f69b3)
+
 ## Features
 - Remote control over WiFi
 - Customizable motor speed and direction
