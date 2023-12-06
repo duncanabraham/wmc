@@ -5,6 +5,7 @@
 ## Introduction
 The WiFi Motor Controller is an innovative project that enables the control of a DC motor via WiFi, simplifying setups by eliminating the need for complex wiring beyond power supply. This project is perfect for hobbyists and professionals looking to integrate motor control into their wireless systems.
 
+I don't know anyone else doing this and initial testing is going well. I think this could be a game changer for hobby robot projects.
 
 ## Features
 - Remote control over WiFi
