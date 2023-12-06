@@ -1,5 +1,10 @@
 # Changelog
 
+0.1.3 - Encoder as a task
+* Encoder runs all the time and can be queried
+* Started PID tuning
+* Fixed issue with motors not running
+
 0.1.2 - Some new API commands
 * Ensure enable pins are high
 * Added "brake" command

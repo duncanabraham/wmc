@@ -27,7 +27,7 @@ Encoder encoder(AS5600_ADDRESS);
 
 SerialNumberManager serialNumberManager(GUID_START, GUID_LENGTH, GUID_MARKER);
 
-const String FIRMWARE_VERSION = "0.1.2";
+const String FIRMWARE_VERSION = "0.1.3";
 
 // Define the motor control pins.
 const int rpwmPin = 14; 
