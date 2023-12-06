@@ -22,12 +22,14 @@ I don't know anyone else doing this and initial testing is going well. I think t
 ## Hardware
 The hardware consists of:
 
-* DC Motor         - Amazon: EsportsMJJ 775 Motor DC 12V-36V 3500-9000RPM
-* BTS7960          - 43A Motor Controller
-* AS5600           - Magnetic 12bit rotary encoder
-* ESP8266          - Microcontroller Dev Module
-* Custom Chassis   - 3d printed housing
-* Assorted fixings - Nuts and bolts
+* DC Motor                   - Amazon: EsportsMJJ 775 Motor DC 12V-36V 3500-9000RPM
+* BTS7960                    - 43A Peak, 30A continuous, Motor Controller 
+* AS5600                     - Magnetic 12bit rotary encoder
+* ESP8266                    - Microcontroller Dev Module
+* AHT21                      - Temperature sensor
+* Custom Chassis             - 3d printed housing
+* Custom 2-way power socket  - 2x XT30 Sockets
+* Assorted fixings           - Nuts and bolts
  
 The chassis is my design and both CAD and STL files will be included in the project when everything has been tested and fine tuned.
 
@@ -72,6 +74,8 @@ The motor controller uses a PID control loop for smooth operation. While default
 /hold               - attempt to keep the motor in the current position - if this draws too much power it may be removed
 /free               - allow the motor to turn freely without power.
 /factory_reset      - clear the EEPROM to remove all stored settings.
+/brake              - Stop and hold the motor by enabling both sides of the H-bridge.
+/release            - release the brake.
 
 
 ### /status
