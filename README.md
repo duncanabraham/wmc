@@ -1,5 +1,7 @@
 # WiFi Motor Controller
 
+<img width="1007" alt="image" src="https://github.com/duncanabraham/wmc/assets/5994927/a5c3c90a-4fcc-4c8e-834c-9338acafe754">
+
 ## It's a work in progress ...
 
 ## Introduction
