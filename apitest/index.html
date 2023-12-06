@@ -2,92 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Robot Data Visualization</title>
+    <title>Motor Data Visualization</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>Robot Status</h1>
+    <h1>Motor Status</h1>
     <canvas id="speedChart"></canvas>
-    <script>
-       const dataLimit = 50; 
-        const ctx = document.getElementById('speedChart').getContext('2d');
-        const speedChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [], // Time or Data Points
-                datasets: [{
-                    label: 'Actual Speed',
-                    data: [],
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }, {
-                    label: 'Target Speed',
-                    data: [],
-                    borderColor: 'rgb(255, 99, 132)',
-                    tension: 0.1
-                }, {
-                    label: 'Position',
-                    data: [],
-                    borderColor: 'rgb(128, 99, 132)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        async function fetchData() {
-            const response = await fetch('http://localhost:3000/data');
-            const data = await response.json();
-            return data;
-        }
-
-        function updateChart(data) {
-            speedChart.data.labels.push(/* New Time or Data Point */);
-            speedChart.data.datasets[0].data.push(data.actualSpeed);
-            speedChart.data.datasets[1].data.push(data.targetSpeed);
-            speedChart.data.datasets[2].data.push(data.position);
-            speedChart.update();
-        }
-
-        function updateChart(data) {
-          // Assuming `data` is the parsed JSON object from your screenshot.
-          // Push new label for each data point, for instance, a timestamp.
-          speedChart.data.labels.push(new Date().toLocaleTimeString());
-
-          // Push the new data to the respective datasets.
-          speedChart.data.datasets.forEach((dataset) => {
-              if (dataset.label === 'Actual Speed') {
-                  dataset.data.push(data.actualSpeed);
-              } else if (dataset.label === 'Target Speed') {
-                  dataset.data.push(data.targetSpeed);
-              } else if (dataset.label === 'Position') {
-                  dataset.data.push(data.position);
-              }
-          });
-
-          // Remove old data points if necessary to prevent memory leaks.
-          if (speedChart.data.labels.length > dataLimit) { // dataLimit is the max number of data points you want to display
-            speedChart.data.labels.shift();
-            speedChart.data.datasets.forEach((dataset) => {
-              dataset.data.shift();
-            });
-          }
-
-    // Update the chart to display the new data.
-    speedChart.update();
-}
-
-
-        setInterval(async () => {
-            const data = await fetchData();
-            updateChart(data);
-        }, 1000); // Update every second
-    </script>
+    <script src="chartScript.js"></script>
 </body>
 </html>
