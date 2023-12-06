@@ -183,7 +183,7 @@ void loop()
     apManager.handleClient();
   }
   else
-  {
+  { // TODO: do some timing tests here to see how long it takes to run these command
     encoder.update();
     aht21Sensor.update();
     server.handleClient();

@@ -124,7 +124,7 @@ void MotorController::free()
 }
 
 double MotorController::rpmToPWM(double rpm) {
-  const int maxRPM = 3500;  // Maximum RPM
+  const int maxRPM = 3500;  // Maximum RPM - this is temporary for my motor on a 6v battery.  Will change to _maxOperationalSpeed when calibration is working
   const int maxPWM = 255;   // Maximum PWM value
   // Calculate percentage of max speed (this could be negative if rpm is negative)
   double percSpeed = rpm / maxRPM;
@@ -172,16 +172,11 @@ void MotorController::updateMotorPWM(double output)
   bool isForward = output >= 0;
   int pwmValue = map(abs(output), 0, 255, 0, 255);
 
-  if (isForward)
-  {
-    analogWrite(_rpwmPin, pwmValue);
-    analogWrite(_lpwmPin, 0);
-  }
-  else
-  {
-    analogWrite(_rpwmPin, 0);
-    analogWrite(_lpwmPin, pwmValue);
-  }
+  int activePin = isForward ? _rpwmPin : _lpwmPin;
+  int inactivePin = !isForward ? _lpwmPin : _rpwmPin;
+
+  analogWrite(inactivePin, 0);
+  analogWrite(activePin, pwmValue);
 }
 
 void MotorController::setDirection(String direction)
@@ -255,9 +250,9 @@ void MotorController::calibrate()
 
   const int maxAttempts = 100; // Set an appropriate limit
   int calibrationDelay = 50;
-  float maxTestSpeed = 10.0;
-  float speedIncrement = 0.5;
-  _minOperationalSpeed = maxTestSpeed;
+  float maxTestSpeed = 60.0; // in testing with 6v battery the motor starts to turn at 15rpm
+  float speedIncrement = 1;
+  _minOperationalSpeed = 0;
   int startPosition = _encoder.readRawAngle();
   bool movementDetected = false;
   int attempts = 0;

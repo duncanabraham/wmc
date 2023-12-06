@@ -27,6 +27,7 @@ The hardware consists of:
 * AS5600                     - Magnetic 12bit rotary encoder
 * ESP8266                    - Microcontroller Dev Module
 * AHT21                      - Temperature sensor
+* MP1584EN                   - Buck Converter
 * Custom Chassis             - 3d printed housing
 * Custom 2-way power socket  - 2x XT30 Sockets
 * Assorted fixings           - Nuts and bolts
