@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <ESP8266WebServer.h>
 #include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
@@ -9,6 +10,7 @@
 #include "ServerManager.h"
 #include "EEPROMConfig.h"
 #include "AHT21Sensor.h"
+#include "Encoder.h"
 
 #define SSID_SIZE 32
 #define PASSWORD_SIZE 64
@@ -18,6 +20,10 @@
 #define GUID_START 100                // EEPROM address to store the GUID
 #define GUID_MARKER 0xAA              // Example marker value
 #define MARKER_START (GUID_START - 1) // Assuming there's a byte space before GUID_START
+
+const uint8_t AS5600_ADDRESS = 0x36;
+
+Encoder encoder(AS5600_ADDRESS);
 
 SerialNumberManager serialNumberManager(GUID_START, GUID_LENGTH, GUID_MARKER);
 
@@ -41,13 +47,12 @@ EEPROMConfig eepromConfig;
 AHT21Sensor aht21Sensor;
 
 // Create an instance of the MotorController class.
-MotorController motorController(eepromConfig, aht21Sensor);
+MotorController motorController(eepromConfig, aht21Sensor, encoder);
 
 ESP8266WebServer server(80);
 APManager apManager("WMC-Config", server, eepromConfig);
 
 ServerManager serverManager(server, motorController, FIRMWARE_VERSION);
-
 
 
 void resetWiFiSettings()
@@ -59,6 +64,8 @@ void setup()
 {
   Serial.begin(115200);
   eepromConfig.begin();
+
+  encoder.begin();
   
   Serial.println();
   Serial.println("Starting WiFi Motor Controller (WMC) Version " + FIRMWARE_VERSION);
@@ -177,6 +184,7 @@ void loop()
   }
   else
   {
+    encoder.update();
     aht21Sensor.update();
     server.handleClient();
     motorController.update();

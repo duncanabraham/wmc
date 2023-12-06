@@ -29,8 +29,8 @@ void ServerManager::handleHold() {
 
 void ServerManager::handleSpeed() {
     if (_server.hasArg("value")) {
-        int speed = _server.arg("value").toInt(); // Assumes speed values are passed as query parameters.
-        _motorController.setSpeed(speed);
+        double speed = _server.arg("value").toInt(); // Assumes speed values are passed as query parameters.
+        _motorController.setTargetSpeed(speed);
         String statusJson = _motorController.getStatusJson(_FIRMWARE_VERSION, "Speed Set");
         _server.send(200, "application/json", statusJson);
     } else {

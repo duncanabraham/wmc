@@ -5,6 +5,7 @@
 #include <PID_v1.h>
 #include "AHT21Sensor.h"
 #include "EEPROMConfig.h"
+#include "Encoder.h"
 
 #define GUID_LENGTH 36                // Length of the GUID string
 #define GUID_START 100                // EEPROM address to store the GUID
@@ -14,9 +15,9 @@
 class MotorController
 {
 public:
-    MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor);
+    MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor, Encoder &encoder);
     void init(int rpwmPin, int lpwmPin, int renPin, int lenPin);
-    void setSpeed(double percentSpeed);
+    void setTargetSpeed(double speed);
     void hold();
     void free();
     void brake();
@@ -39,10 +40,12 @@ private:
     double _targetSpeed; // Target speed set by the user
     double _actualSpeed; // Actual speed read from the encoder
     double _output;      // Output to the motor driver
+    
+    double _targetSpeedRPM; // Set value by user API
 
     unsigned long _lastUpdateTime; // Time of the last PID update
     int _lastPosition;             // Last position read from the encoder
-    int SampleTime = 100;          // Sample time in milliseconds for PID update
+    int SampleTime = 5;          // Sample time in milliseconds for PID update
     char _serialNumber[37];
 
     int _holdPosition; // Target position for holding
@@ -62,8 +65,8 @@ private:
 
     AHT21Sensor &_aht21Sensor;
     EEPROMConfig &_eepromConfig;
+    Encoder &_encoder;
 
-    void setTargetSpeed(double speed);
     int readEncoder(); // Method to read the encoder position
     double rpmToEncoderCountsPerSecond(double rpm);
     void readGUID(char *guid);
@@ -72,6 +75,10 @@ private:
     void saveCalibrationData(); // Save calibration data to EEPROM
     void loadCalibrationData(); // Load calibration data from EEPROM
     float calculateRpm(int startPosition, int endPosition, unsigned long timeMillis);
+    void updateMotorPWM(double output);
+    float estimateMaxSpeed(const std::vector<float>& pwmPercentages, const std::vector<float>& recordedRpms);
+    double rpmToPWM(double rpm);
+    double pwmToRPM(double speed);
 };
 
 #endif

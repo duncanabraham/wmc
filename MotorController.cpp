@@ -1,5 +1,4 @@
 #include "MotorController.h"
-#include <Wire.h>
 
 #define AS5600_ADDRESS 0x36
 #define AS5600_RAW_ANGLE_REG 0x0C // Register for the 12-bit raw angle
@@ -9,17 +8,19 @@
 #define CALIBRATION_STATE_ADDRESS 152              // An address not used by other data
 
 // Initial PID constants
-const double Kp = 2.0; // Proportional gain
-const double Ki = 0.5; // Integral gain
-const double Kd = 0.1; // Derivative gain
+const double Kp = 1; // Proportional gain
+const double Ki = 48.0;  // Integral gain
+const double Kd = 0.05; // Derivative gain
 
-MotorController::MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor)
-    : _eepromConfig(eepromConfig), _aht21Sensor(aht21Sensor), _pid(&_actualSpeed, &_output, &_targetSpeed, Kp, Ki, Kd, DIRECT) {}
-
-double MotorController::getRPM(double speed)
-{
-  return speed * 60.0 / encoderCountsPerRevolution;
+double easeInOut(double currentTime, double startValue, double changeInValue, double duration) {
+    currentTime /= duration / 2;
+    if (currentTime < 1) return changeInValue / 2 * currentTime * currentTime + startValue;
+    currentTime--;
+    return -changeInValue / 2 * (currentTime * (currentTime - 2) - 1) + startValue;
 }
+
+MotorController::MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor, Encoder &encoder)
+    : _eepromConfig(eepromConfig), _aht21Sensor(aht21Sensor), _encoder(encoder), _pid(&_actualSpeed, &_output, &_targetSpeed, Kp, Ki, Kd, DIRECT) {}
 
 void MotorController::init(int rpwmPin, int lpwmPin, int renPin, int lenPin)
 {
@@ -44,7 +45,7 @@ void MotorController::init(int rpwmPin, int lpwmPin, int renPin, int lenPin)
 
   // Initialization code...
   _pid.SetOutputLimits(-255, 255); // Set output limits to match PWM range
-  _pid.SetSampleTime(10);          // Set how often the PID loop is updated (in milliseconds)
+  _pid.SetSampleTime(SampleTime);          // Set how often the PID loop is updated (in milliseconds)
   _pid.SetMode(AUTOMATIC);         // Set PID to automatic mode
 
   _lastUpdateTime = millis();
@@ -63,9 +64,8 @@ void MotorController::readGUID(char *guid)
 
 String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
 {
-  double currentValue = getRPM(_actualSpeed);
-  double targetValue = getRPM(_targetSpeed);
-
+  double currentValue = _encoder.getSpeed();
+  
   float temperature = _aht21Sensor.readTemperature();
   float humidity = _aht21Sensor.readHumidity();
 
@@ -81,7 +81,7 @@ String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
   json += "\"actualSpeed\":" + String(_actualSpeed) + ",";
   json += "\"targetSpeed\":" + String(_targetSpeed) + ",";
   json += "\"actualSpeedRPM\":" + String(currentValue) + ",";
-  json += "\"targetSpeedRPM\":" + String(targetValue) + ",";
+  json += "\"targetSpeedRPM\":" + String(_targetSpeedRPM) + ",";
   json += "\"temperature\":" + String(temperature) + ",";
   json += "\"humidity\":" + String(humidity) + ",";
   json += "\"message\":\"" + String(message) + "\"";
@@ -91,8 +91,9 @@ String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
 
 void MotorController::hold()
 {
-  _holdPosition = readEncoder(); // Capture the current position
-  _isHolding = true;             // Set the flag to indicate hold mode
+  _holdPosition = _encoder.readRawAngle(); // Capture the current position
+  setTargetSpeed(0);
+  _isHolding = true; // Set the flag to indicate hold mode
 }
 
 void MotorController::brake()
@@ -122,23 +123,15 @@ void MotorController::free()
   digitalWrite(_renPin, LOW);
 }
 
-int MotorController::readEncoder()
-{
-  Wire.beginTransmission(AS5600_ADDRESS);
-  Wire.write(AS5600_RAW_ANGLE_REG);
-  Wire.endTransmission(false);
-
-  Wire.requestFrom(AS5600_ADDRESS, 2);
-  if (Wire.available() == 2)
-  {
-    uint16_t rawAngle = Wire.read() << 8;
-    rawAngle |= Wire.read();
-    return static_cast<int>(rawAngle);
-  }
-  else
-  {
-    return -1; // Indicate an error
-  }
+double MotorController::rpmToPWM(double rpm) {
+  const int maxRPM = 3500;  // Maximum RPM
+  const int maxPWM = 255;   // Maximum PWM value
+  // Calculate percentage of max speed (this could be negative if rpm is negative)
+  double percSpeed = rpm / maxRPM;
+  // Scale the percentage to PWM range and clamp the value between -maxPWM and maxPWM
+  int pwmValue = static_cast<int>(maxPWM * percSpeed);
+  pwmValue = max(-maxPWM, min(pwmValue, maxPWM)); // Ensuring the PWM is within range
+  return pwmValue;
 }
 
 void MotorController::update()
@@ -146,45 +139,48 @@ void MotorController::update()
   unsigned long currentTime = millis();
   unsigned long timeChange = (currentTime - _lastUpdateTime);
 
-  currentPosition = readEncoder();
   if (timeChange >= SampleTime)
   {
+    currentPosition = _encoder.readRawAngle();
+    double currentSpeedRPM = _encoder.getSpeed();
+
+    // Use _encoder.getTotalRevolutions() if you need total revolutions count
+
     if (_isHolding)
     {
-      // In hold mode, adjust the target speed based on the difference from the hold position
-      int scalingFactor = 1;
+      // Adjust target speed based on the difference from the hold position
       int positionError = _holdPosition - currentPosition;
-      setTargetSpeed(positionError * scalingFactor); // someScalingFactor to be determined based on system
+      setTargetSpeed(positionError);
     }
 
-    // Read the encoder position
-    int newPosition = currentPosition; // Implement this function based on your encoder
-
-    // Calculate speed as a difference in position over time
-    //  _actualSpeed = (newPosition - _lastPosition) / timeChange * 1000.0; // Converts to units per second
-    _actualSpeed = static_cast<double>(newPosition - _lastPosition) / timeChange * 1000.0;
-
     // Update the PID controller
+    _actualSpeed = rpmToPWM(currentSpeedRPM);
+    _direction = _encoder.getDirection();
+
     _pid.Compute();
 
     // Update motor PWM based on PID output
-    bool isForward = _output >= 0;
-    int pwmValue = map(abs(_output), 0, 255, 0, 255);
+    updateMotorPWM(_output);
 
-    if (isForward)
-    {
-      analogWrite(_rpwmPin, pwmValue);
-      analogWrite(_lpwmPin, 0);
-    }
-    else
-    {
-      analogWrite(_rpwmPin, 0);
-      analogWrite(_lpwmPin, pwmValue);
-    }
-
-    // Save position and time for the next update
-    _lastPosition = newPosition;
+    // Save time for the next update
     _lastUpdateTime = currentTime;
+  }
+}
+
+void MotorController::updateMotorPWM(double output)
+{
+  bool isForward = output >= 0;
+  int pwmValue = map(abs(output), 0, 255, 0, 255);
+
+  if (isForward)
+  {
+    analogWrite(_rpwmPin, pwmValue);
+    analogWrite(_lpwmPin, 0);
+  }
+  else
+  {
+    analogWrite(_rpwmPin, 0);
+    analogWrite(_lpwmPin, pwmValue);
   }
 }
 
@@ -193,25 +189,15 @@ void MotorController::setDirection(String direction)
   _direction = direction;
 }
 
-void MotorController::setSpeed(double rpm)
+void MotorController::setTargetSpeed(double speed) // pass the speed as RPM but remember the PID works between -255 and +255
 {
-  if (rpm < _minOperationalSpeed || rpm > _maxOperationalSpeed)
-  {
-    _isHolding = false;
-
-    double targetEncoderCountsPerSecond = rpmToEncoderCountsPerSecond(rpm);
-    setTargetSpeed(targetEncoderCountsPerSecond);
-    setDirection(rpm > 0 ? "CW" : rpm < 0 ? "CCW"
-                                          : "STOPPED");
-  }
-}
-
-void MotorController::setTargetSpeed(double speed)
-{
-  _targetSpeed = speed;
+  _targetSpeedRPM=speed;
+  _actualSpeed=0;
+  _targetSpeed = rpmToPWM(speed); // % or 255
   _pid.SetMode(AUTOMATIC); // Enable the PID controller if not already enabled
   digitalWrite(_lenPin, HIGH);
   digitalWrite(_renPin, HIGH);
+  setDirection(speed > 0 ? "CW" : speed < 0 ? "CCW" : "STOPPED");
 }
 
 double MotorController::rpmToEncoderCountsPerSecond(double rpm)
@@ -263,22 +249,26 @@ float MotorController::calculateRpm(int startPosition, int endPosition, unsigned
 
 void MotorController::calibrate()
 {
+  // make sure the controller is on
+  digitalWrite(_lenPin, HIGH);
+  digitalWrite(_renPin, HIGH);
+
   const int maxAttempts = 100; // Set an appropriate limit
   int calibrationDelay = 50;
   float maxTestSpeed = 10.0;
-  float speedIncrement = 0.1;
+  float speedIncrement = 0.5;
   _minOperationalSpeed = maxTestSpeed;
-  int startPosition = readEncoder();
+  int startPosition = _encoder.readRawAngle();
   bool movementDetected = false;
   int attempts = 0;
 
-  for (float speed = 0.1; speed <= maxTestSpeed && attempts < maxAttempts; speed += speedIncrement)
+  for (float speed = 0.0; speed <= maxTestSpeed && attempts < maxAttempts; speed += speedIncrement)
   {
-    setSpeed(speed);
+    setTargetSpeed(speed);
     delay(calibrationDelay);
     attempts++;
 
-    currentPosition = readEncoder();
+    currentPosition = _encoder.readRawAngle();
     if (abs(currentPosition - startPosition) > 2)
     {
       _minOperationalSpeed = speed;
@@ -288,7 +278,7 @@ void MotorController::calibrate()
   }
 
   // Data collection for curve fitting
-  std::vector<float> pwmPercentages = {0.1, 0.2, 0.3, 0.4, 0.5}; // 10%, 20%, 30%, 40%, 50% of PWM
+  std::vector<float> pwmPercentages = {0.1, 0.2, 0.3, 0.4, 0.5}; // Example percentages
   std::vector<float> recordedRpms;
 
   for (float pwmPercentage : pwmPercentages)
@@ -297,18 +287,45 @@ void MotorController::calibrate()
     analogWrite(_rpwmPin, pwmValue);        // Set motor speed
     delay(1000);                            // Delay to stabilize speed
 
-    currentPosition = readEncoder();
-    float currentRpm = calculateRpm(_lastPosition, currentPosition, 5000);
+    float currentRpm = _encoder.getSpeed();
     recordedRpms.push_back(currentRpm);
-
-    _lastPosition = currentPosition; // Update last position for next measurement
   }
 
-  if (!movementDetected)
-  {
-    // Handle the case where no movement was detected within the test range
-    _minOperationalSpeed = 0;
-  }
+  // Analyze the recorded RPM data to estimate the maximum speed
+  _maxOperationalSpeed = estimateMaxSpeed(pwmPercentages, recordedRpms);
 
   saveCalibrationData();
+}
+
+// Fit the measured speeds to a straight line estimation
+float MotorController::estimateMaxSpeed(const std::vector<float> &pwmPercentages, const std::vector<float> &recordedRpms)
+{
+  if (pwmPercentages.size() != recordedRpms.size() || pwmPercentages.empty())
+  {
+    // Handle error: The vectors must be of the same size and not empty
+    return 0;
+  }
+
+  float sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  int n = pwmPercentages.size();
+
+  for (int i = 0; i < n; i++)
+  {
+    sumX += pwmPercentages[i];
+    sumY += recordedRpms[i];
+    sumXY += pwmPercentages[i] * recordedRpms[i];
+    sumX2 += pwmPercentages[i] * pwmPercentages[i];
+  }
+
+  // Calculating the coefficients
+  float xMean = sumX / n;
+  float yMean = sumY / n;
+  float slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  float intercept = yMean - slope * xMean;
+
+  // Assuming the maximum speed is where the line intersects the maximum PWM value (100%)
+  float maxPwmPercentage = 1.0; // 100%
+  float estimatedMaxSpeed = slope * maxPwmPercentage + intercept;
+
+  return estimatedMaxSpeed;
 }
