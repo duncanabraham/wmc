@@ -132,7 +132,7 @@ void MotorController::free()
 
 double MotorController::rpmToPWM(double rpm)
 {
-  const int maxRPM = 3500; // Maximum RPM
+  const int maxRPM = _maxOperationalSpeed > 100 ? _maxOperationalSpeed : 3500; // Maximum RPM
   const int maxPWM = 1023; // Maximum PWM value
   // Calculate percentage of max speed (this could be negative if rpm is negative)
   double percSpeed = rpm / maxRPM;
@@ -270,7 +270,6 @@ void MotorController::calibrate()
     analogWrite(_rpwmPin, pwmValue);  // Set motor speed
     delay(calibrationDelay);
     attempts++;
-    _encoder.update();
     currentPosition = _encoder.readRawAngle();
     if (abs(currentPosition - startPosition) > 300)
     {
@@ -281,32 +280,35 @@ void MotorController::calibrate()
   }
 
   // Data collection for curve fitting
-  std::vector<float> pwmPercentages = {0.2, 0.3, 0.4, 0.5}; // Example percentages
+  std::vector<float> pwmPercentages = {1};//, 0.2, 0.3}; //, 0.4, 0.5}; // Example percentages
   std::vector<float> recordedRpms;
-  
+
   float currentRpm = 0;
-  for (float pwmPercentage : pwmPercentages) {
+  for (float pwmPercentage : pwmPercentages)
+  {
     float pwmValue = pwmPercentage * 1023.0; // Scale percentage to PWM value
     analogWrite(_rpwmPin, pwmValue);         // Set motor speed
 
     unsigned long startTime = millis();
     unsigned long lastUpdateTime = 0;
-    while (millis() - startTime < 1000) {    // Loop for 1 second
+    while (millis() - startTime < 1000)
+    { // Loop for 1 second
       unsigned long currentTime = millis();
-      if (currentTime - lastUpdateTime >= 5) { // Every 5ms
-        _encoder.update();                      // Update encoder reading
+      if (currentTime - lastUpdateTime >= 10)
+      {                    // Every 5ms
+        _encoder.update(); // Update encoder reading
         lastUpdateTime = currentTime;
       }
     }
 
     _encoder.update(); // One final update after the stabilization period
-    float currentRpm = _encoder.getSpeed();
+    currentRpm = _encoder.getSpeed();
     recordedRpms.push_back(currentRpm);
   }
 
   // Analyze the recorded RPM data to estimate the maximum speed
-  _maxOperationalSpeed = currentRpm * 2; // estimateMaxSpeed(pwmPercentages, recordedRpms);
-  
+  _maxOperationalSpeed = currentRpm; //estimateMaxSpeed(pwmPercentages, recordedRpms);
+
   analogWrite(_rpwmPin, 0);
   digitalWrite(_lenPin, LOW);
   digitalWrite(_renPin, LOW);
