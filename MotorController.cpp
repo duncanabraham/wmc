@@ -180,16 +180,11 @@ void MotorController::updateMotorPWM(double output)
   bool isForward = output >= 0;
   int pwmValue = map(abs(output), 0, 1023, 0, 1023);
 
-  if (isForward)
-  {
-    analogWrite(_rpwmPin, pwmValue);
-    analogWrite(_lpwmPin, 0);
-  }
-  else
-  {
-    analogWrite(_rpwmPin, 0);
-    analogWrite(_lpwmPin, pwmValue);
-  }
+  int activePin = isForward ? _rpwmPin : _lpwmPin;
+  int inactivePin = !isForward ? _lpwmPin : _rpwmPin;
+
+  analogWrite(inactivePin, 0);
+  analogWrite(activePin, pwmValue);
 }
 
 void MotorController::setDirection(String direction)
