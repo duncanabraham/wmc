@@ -7,20 +7,20 @@
 #define CALIBRATION_DATA_LENGTH sizeof(double) * 2 // Assuming two double values for min and max speeds
 #define CALIBRATION_STATE_ADDRESS 152              // An address not used by other data
 
-// Initial PID constants
-const double Kp = 1; // Proportional gain
-const double Ki = 48.0;  // Integral gain
-const double Kd = 0.05; // Derivative gain
-
-double easeInOut(double currentTime, double startValue, double changeInValue, double duration) {
-    currentTime /= duration / 2;
-    if (currentTime < 1) return changeInValue / 2 * currentTime * currentTime + startValue;
-    currentTime--;
-    return -changeInValue / 2 * (currentTime * (currentTime - 2) - 1) + startValue;
+double easeInOut(double currentTime, double startValue, double changeInValue, double duration)
+{
+  currentTime /= duration / 2;
+  if (currentTime < 1)
+    return changeInValue / 2 * currentTime * currentTime + startValue;
+  currentTime--;
+  return -changeInValue / 2 * (currentTime * (currentTime - 2) - 1) + startValue;
 }
 
 MotorController::MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor, Encoder &encoder)
-    : _eepromConfig(eepromConfig), _aht21Sensor(aht21Sensor), _encoder(encoder), _pid(&_actualSpeed, &_output, &_targetSpeed, Kp, Ki, Kd, DIRECT) {}
+    : _eepromConfig(eepromConfig), _aht21Sensor(aht21Sensor), _encoder(encoder), _kp(2.0), _ki(0.1), _kd(0.1), _pid(&_actualSpeed, &_output, &_targetSpeed, _kp, _ki, _kd, DIRECT)
+{
+  // ... rest of the constructor ...
+}
 
 void MotorController::init(int rpwmPin, int lpwmPin, int renPin, int lenPin)
 {
@@ -44,9 +44,9 @@ void MotorController::init(int rpwmPin, int lpwmPin, int renPin, int lenPin)
   digitalWrite(_renPin, HIGH);
 
   // Initialization code...
-  _pid.SetOutputLimits(-255, 255); // Set output limits to match PWM range
-  _pid.SetSampleTime(SampleTime);          // Set how often the PID loop is updated (in milliseconds)
-  _pid.SetMode(AUTOMATIC);         // Set PID to automatic mode
+  _pid.SetOutputLimits(-1023, 1023); // Set output limits to match PWM range
+  _pid.SetSampleTime(SampleTime);    // Set how often the PID loop is updated (in milliseconds)
+  _pid.SetMode(AUTOMATIC);           // Set PID to automatic mode
 
   _lastUpdateTime = millis();
   _lastPosition = 0;
@@ -57,6 +57,13 @@ void MotorController::init(int rpwmPin, int lpwmPin, int renPin, int lenPin)
   loadCalibrationData();
 }
 
+void MotorController::setPIDValues(double kp, double ki, double kd)
+{
+  _kp = kp;
+  _ki = ki;
+  _kd = kd;
+  _pid.SetTunings(_kp, _ki, _kd);
+}
 void MotorController::readGUID(char *guid)
 {
   _eepromConfig.readGUID(guid);
@@ -65,7 +72,7 @@ void MotorController::readGUID(char *guid)
 String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
 {
   double currentValue = _encoder.getSpeed();
-  
+
   float temperature = _aht21Sensor.readTemperature();
   float humidity = _aht21Sensor.readHumidity();
 
@@ -73,7 +80,7 @@ String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
   json += "\"firmwareVersion\":\"" + FIRMWARE_VERSION + "\",";
   json += "\"serialNumber\":\"" + String(_serialNumber) + "\",";
   json += "\"calibrated\":" + String(!_isCalibrated ? "true" : "false") + ",";
-  json += "\"pid\":{\"kp\":" + String(Kp) + ",\"ki\":" + String(Ki) + ",\"kd\":" + String(Kd) + "},";
+  json += "\"pid\":{\"kp\":" + String(_kp) + ",\"ki\":" + String(_ki) + ",\"kd\":" + String(_kd) + "},";
   json += "\"direction\":\"" + _direction + "\",";
   json += "\"minSpeed\":" + String(_minOperationalSpeed) + ",";
   json += "\"maxSpeed\":" + String(_maxOperationalSpeed) + ",";
@@ -123,9 +130,10 @@ void MotorController::free()
   digitalWrite(_renPin, LOW);
 }
 
-double MotorController::rpmToPWM(double rpm) {
-  const int maxRPM = 3500;  // Maximum RPM
-  const int maxPWM = 255;   // Maximum PWM value
+double MotorController::rpmToPWM(double rpm)
+{
+  const int maxRPM = 3500; // Maximum RPM
+  const int maxPWM = 1023; // Maximum PWM value
   // Calculate percentage of max speed (this could be negative if rpm is negative)
   double percSpeed = rpm / maxRPM;
   // Scale the percentage to PWM range and clamp the value between -maxPWM and maxPWM
@@ -170,7 +178,7 @@ void MotorController::update()
 void MotorController::updateMotorPWM(double output)
 {
   bool isForward = output >= 0;
-  int pwmValue = map(abs(output), 0, 255, 0, 255);
+  int pwmValue = map(abs(output), 0, 1023, 0, 1023);
 
   if (isForward)
   {
@@ -191,28 +199,20 @@ void MotorController::setDirection(String direction)
 
 void MotorController::setTargetSpeed(double speed) // pass the speed as RPM but remember the PID works between -255 and +255
 {
-  _targetSpeedRPM=speed;
-  _actualSpeed=0;
-  _targetSpeed = rpmToPWM(speed); // % or 255
+  _targetSpeedRPM = speed;
+  _actualSpeed = 0;
+  _targetSpeed = rpmToPWM(speed);
   _pid.SetMode(AUTOMATIC); // Enable the PID controller if not already enabled
   digitalWrite(_lenPin, HIGH);
   digitalWrite(_renPin, HIGH);
-  setDirection(speed > 0 ? "CW" : speed < 0 ? "CCW" : "STOPPED");
+  setDirection(speed > 0 ? "CW" : speed < 0 ? "CCW"
+                                            : "STOPPED");
 }
 
 double MotorController::rpmToEncoderCountsPerSecond(double rpm)
 {
   const double encoderCountsPerRevolution = 4096; // 12-bit encoder
   return (rpm / 60.0) * encoderCountsPerRevolution;
-}
-
-void MotorController::saveCalibrationData()
-{
-  _eepromConfig.writeMinOperationalSpeed(_minOperationalSpeed);
-  _eepromConfig.writeMaxOperationalSpeed(_maxOperationalSpeed);
-  _eepromConfig.writeCalibrationState(false); // Writing false to indicate calibration is set
-
-  // No need to call commit here if writeConfig in EEPROMConfig already does it
 }
 
 void MotorController::loadCalibrationData()
@@ -247,6 +247,13 @@ float MotorController::calculateRpm(int startPosition, int endPosition, unsigned
   return static_cast<float>(rpm);
 }
 
+void MotorController::saveCalibrationData()
+{
+  _eepromConfig.writeMinOperationalSpeed(_minOperationalSpeed);
+  _eepromConfig.writeMaxOperationalSpeed(_maxOperationalSpeed);
+  _eepromConfig.writeCalibrationState(false);
+}
+
 void MotorController::calibrate()
 {
   // make sure the controller is on
@@ -255,8 +262,8 @@ void MotorController::calibrate()
 
   const int maxAttempts = 100; // Set an appropriate limit
   int calibrationDelay = 50;
-  float maxTestSpeed = 10.0;
-  float speedIncrement = 0.5;
+  float maxTestSpeed = 600.0;
+  float speedIncrement = 1;
   _minOperationalSpeed = maxTestSpeed;
   int startPosition = _encoder.readRawAngle();
   bool movementDetected = false;
@@ -264,12 +271,13 @@ void MotorController::calibrate()
 
   for (float speed = 0.0; speed <= maxTestSpeed && attempts < maxAttempts; speed += speedIncrement)
   {
-    setTargetSpeed(speed);
+    float pwmValue = rpmToPWM(speed); // Convert percentage to PWM value
+    analogWrite(_rpwmPin, pwmValue);  // Set motor speed
     delay(calibrationDelay);
     attempts++;
-
+    _encoder.update();
     currentPosition = _encoder.readRawAngle();
-    if (abs(currentPosition - startPosition) > 2)
+    if (abs(currentPosition - startPosition) > 300)
     {
       _minOperationalSpeed = speed;
       movementDetected = true;
@@ -278,22 +286,35 @@ void MotorController::calibrate()
   }
 
   // Data collection for curve fitting
-  std::vector<float> pwmPercentages = {0.1, 0.2, 0.3, 0.4, 0.5}; // Example percentages
+  std::vector<float> pwmPercentages = {0.2, 0.3, 0.4, 0.5}; // Example percentages
   std::vector<float> recordedRpms;
+  
+  float currentRpm = 0;
+  for (float pwmPercentage : pwmPercentages) {
+    float pwmValue = pwmPercentage * 1023.0; // Scale percentage to PWM value
+    analogWrite(_rpwmPin, pwmValue);         // Set motor speed
 
-  for (float pwmPercentage : pwmPercentages)
-  {
-    float pwmValue = pwmPercentage * 255.0; // Convert percentage to PWM value
-    analogWrite(_rpwmPin, pwmValue);        // Set motor speed
-    delay(1000);                            // Delay to stabilize speed
+    unsigned long startTime = millis();
+    unsigned long lastUpdateTime = 0;
+    while (millis() - startTime < 1000) {    // Loop for 1 second
+      unsigned long currentTime = millis();
+      if (currentTime - lastUpdateTime >= 5) { // Every 5ms
+        _encoder.update();                      // Update encoder reading
+        lastUpdateTime = currentTime;
+      }
+    }
 
+    _encoder.update(); // One final update after the stabilization period
     float currentRpm = _encoder.getSpeed();
     recordedRpms.push_back(currentRpm);
   }
 
   // Analyze the recorded RPM data to estimate the maximum speed
-  _maxOperationalSpeed = estimateMaxSpeed(pwmPercentages, recordedRpms);
-
+  _maxOperationalSpeed = currentRpm * 2; // estimateMaxSpeed(pwmPercentages, recordedRpms);
+  
+  analogWrite(_rpwmPin, 0);
+  digitalWrite(_lenPin, LOW);
+  digitalWrite(_renPin, LOW);
   saveCalibrationData();
 }
 

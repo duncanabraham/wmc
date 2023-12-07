@@ -1,3 +1,4 @@
+const motorAddress='192.168.1.121';
 const dataLimit = 100;
 const ctx = document.getElementById('speedChart').getContext('2d');
 const speedChart = new Chart(ctx, {
@@ -70,3 +71,63 @@ async function updateData() {
 }
 
 updateData(); // Initial call to start the process
+
+// PID data sender
+document.getElementById('kp').addEventListener('input', function() {
+  document.getElementById('kp-value').innerText = this.value;
+  sendPIDValues();
+});
+
+document.getElementById('ki').addEventListener('input', function() {
+  document.getElementById('ki-value').innerText = this.value;
+  sendPIDValues();
+});
+
+document.getElementById('kd').addEventListener('input', function() {
+  document.getElementById('kd-value').innerText = this.value;
+  sendPIDValues();
+});
+
+// Initialize the span values on page load
+document.getElementById('kp-value').innerText = document.getElementById('kp').value;
+document.getElementById('ki-value').innerText = document.getElementById('ki').value;
+document.getElementById('kd-value').innerText = document.getElementById('kd').value;
+
+
+// Function to send PID values to the server
+async function sendPIDValues() {
+  const kp = document.getElementById('kp').value;
+  const ki = document.getElementById('ki').value;
+  const kd = document.getElementById('kd').value;
+
+  try {
+      const response = await fetch(`http://${motorAddress}/setpid?kp=${kp}&ki=${ki}&kd=${kd}`, {
+          method: 'GET' // Or 'POST', if your server is set up to handle POST requests
+      });
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      console.log('PID values updated:', { kp, ki, kd });
+  } catch (error) {
+      console.error('Failed to send PID values:', error);
+  }
+}
+
+async function fetchInitialPIDValues() {
+  try {
+    const response = await fetch(`http://${motorAddress}/status`);
+    const data = await response.json();
+
+    // Set initial slider values and display spans
+    document.getElementById('kp').value = data.pid.kp;
+    document.getElementById('kp-value').innerText = data.pid.kp.toFixed(2); // Assuming you want to show 2 decimal places
+    document.getElementById('ki').value = data.pid.ki;
+    document.getElementById('ki-value').innerText = data.pid.ki.toFixed(2);
+    document.getElementById('kd').value = data.pid.kd;
+    document.getElementById('kd-value').innerText = data.pid.kd.toFixed(3);
+  } catch (error) {
+    console.error('Failed to fetch initial PID values:', error);
+  }
+}
+
+fetchInitialPIDValues();

@@ -54,7 +54,6 @@ APManager apManager("WMC-Config", server, eepromConfig);
 
 ServerManager serverManager(server, motorController, FIRMWARE_VERSION);
 
-
 void resetWiFiSettings()
 {
   WiFi.disconnect(true);
@@ -64,7 +63,6 @@ void setup()
 {
   Serial.begin(115200);
   eepromConfig.begin();
-
   encoder.begin();
   
   Serial.println();

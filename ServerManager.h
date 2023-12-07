@@ -25,6 +25,7 @@ private:
     void handleFactoryReset();
     void handleConfig();
     void handleSetup();
+    void handleSetPID();
 };
 
 #endif

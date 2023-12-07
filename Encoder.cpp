@@ -74,42 +74,6 @@ void Encoder::update() {
   }
 }
 
-
-// void Encoder::update()
-// {
-//   unsigned long currentTime = millis();
-//   int currentRawAngle = readRawAngle();
-
-//   if (currentRawAngle != -1 && _lastRawAngle != -1)
-//   {
-//     int angleDifference = currentRawAngle - _lastRawAngle;
-//     unsigned long timeDifference = currentTime - _lastUpdateTime;
-
-//     // Ensure time difference is not zero to avoid division by zero
-//     if (timeDifference > 0)
-//     {
-//       // Calculate speed in ticks per millisecond, and then convert to ticks per second
-//       _speed = (angleDifference / static_cast<float>(timeDifference)) * 1000.0;
-//     }
-
-//     if (angleDifference > 1)
-//     {
-//       // Forward movement
-//       _totalRevolutions++;
-//       _direction = "CW";
-//     }
-//     else if (angleDifference < -1)
-//     {
-//       // Reverse movement
-//       _totalRevolutions--;
-//       _direction = "CCW";
-//     }
-
-//     _lastRawAngle = currentRawAngle;
-//     _lastUpdateTime = currentTime;
-//   }
-// }
-
 long Encoder::getTotalRevolutions()
 {
   return _totalRevolutions;

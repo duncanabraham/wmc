@@ -28,6 +28,7 @@ public:
 
     void setPIDParameters(double Kp, double Ki, double Kd);
     void clearEEPROM();
+    void setPIDValues(double kp, double ki, double kd);
 
     String getStatusJson(String FIRMWARE_VERSION, String message);
 
@@ -60,6 +61,9 @@ private:
     String _direction;
 
     PID _pid; // PID controller object
+    double _kp;
+    double _ki;
+    double _kd;
 
     const int encoderCountsPerRevolution = 4096;
 
