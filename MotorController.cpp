@@ -16,8 +16,8 @@ double easeInOut(double currentTime, double startValue, double changeInValue, do
   return -changeInValue / 2 * (currentTime * (currentTime - 2) - 1) + startValue;
 }
 
-MotorController::MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor, Encoder &encoder)
-    : _eepromConfig(eepromConfig), _aht21Sensor(aht21Sensor), _encoder(encoder), _kp(2.0), _ki(0.1), _kd(0.1), _pid(&_actualSpeed, &_output, &_targetSpeed, _kp, _ki, _kd, DIRECT)
+MotorController::MotorController(EEPROMConfig &eepromConfig, Encoder &encoder)
+    : _eepromConfig(eepromConfig), _encoder(encoder), _kp(2.0), _ki(0.1), _kd(0.1), _pid(&_actualSpeed, &_output, &_targetSpeed, _kp, _ki, _kd, DIRECT)
 {
   // ... rest of the constructor ...
 }
@@ -31,8 +31,6 @@ void MotorController::init(int rpwmPin, int lpwmPin, int renPin, int lenPin)
   _lpwmPin = lpwmPin;
   _renPin = renPin;
   _lenPin = lenPin;
-
-  Wire.begin();
 
   // Initialize the pins as outputs.
   pinMode(_rpwmPin, OUTPUT);
@@ -73,9 +71,6 @@ String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
 {
   double currentValue = _encoder.getSpeed();
 
-  float temperature = _aht21Sensor.readTemperature();
-  float humidity = _aht21Sensor.readHumidity();
-
   String json = "{";
   json += "\"firmwareVersion\":\"" + FIRMWARE_VERSION + "\",";
   json += "\"serialNumber\":\"" + String(_serialNumber) + "\",";
@@ -89,8 +84,6 @@ String MotorController::getStatusJson(String FIRMWARE_VERSION, String message)
   json += "\"targetSpeed\":" + String(_targetSpeed) + ",";
   json += "\"actualSpeedRPM\":" + String(currentValue) + ",";
   json += "\"targetSpeedRPM\":" + String(_targetSpeedRPM) + ",";
-  json += "\"temperature\":" + String(temperature) + ",";
-  json += "\"humidity\":" + String(humidity) + ",";
   json += "\"message\":\"" + String(message) + "\"";
   json += "}";
   return json;

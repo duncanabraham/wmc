@@ -87,14 +87,14 @@ document.getElementById('kd').addEventListener('input', function () {
   sendPIDValues()
 })
 
-// document.getElementById('speed').addEventListener('input', function () {
-//   document.getElementById('speed-value').innerText = this.value
-//   sendSpeedValue(this.value)
-// })
+document.getElementById('speed').addEventListener('input', function () {
+  document.getElementById('speed-value').innerText = this.value
+  sendSpeedValue(this.value)
+})
 
 async function sendSpeedValue (speed) {
   try {
-    const response = await fetch(`http://${motorAddress}/setspeed?speed=${speed}`, {
+    const response = await fetch(`http://${motorAddress}/speed?value=${speed}`, {
       method: 'GET'
     })
     if (!response.ok) {
@@ -183,3 +183,20 @@ document.addEventListener('DOMContentLoaded', (event) => {
   updateMotorStatus() // Update once immediately
   setInterval(updateMotorStatus, 5000) // Then set the interval for regular updates
 })
+
+
+async function stopMotor(){
+  const response = await fetch(`http://${motorAddress}/free`)
+  console.log('Stop motor: ', response)
+}
+
+async function startMotor(){
+  document.getElementById('speed-value').innerText = this.value
+  await sendSpeedValue(this.value)
+}
+
+async function calibrate(){
+  const response = await fetch(`http://${motorAddress}/calibrate`)
+  console.log('Calibrate: ', response)
+}
+

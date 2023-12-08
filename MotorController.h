@@ -3,7 +3,6 @@
 
 #include "Arduino.h"
 #include <PID_v1.h>
-#include "AHT21Sensor.h"
 #include "EEPROMConfig.h"
 #include "Encoder.h"
 
@@ -15,7 +14,7 @@
 class MotorController
 {
 public:
-    MotorController(EEPROMConfig &eepromConfig, AHT21Sensor &aht21Sensor, Encoder &encoder);
+    MotorController(EEPROMConfig &eepromConfig, Encoder &encoder);
     void init(int rpwmPin, int lpwmPin, int renPin, int lenPin);
     void setTargetSpeed(double speed);
     void hold();
@@ -67,7 +66,6 @@ private:
 
     const int encoderCountsPerRevolution = 4096;
 
-    AHT21Sensor &_aht21Sensor;
     EEPROMConfig &_eepromConfig;
     Encoder &_encoder;
 

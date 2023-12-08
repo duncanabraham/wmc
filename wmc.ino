@@ -9,7 +9,6 @@
 #include "APManager.h"
 #include "ServerManager.h"
 #include "EEPROMConfig.h"
-#include "AHT21Sensor.h"
 #include "Encoder.h"
 
 #define SSID_SIZE 32
@@ -44,10 +43,9 @@ bool apMode = false;
 
 
 EEPROMConfig eepromConfig;
-AHT21Sensor aht21Sensor;
 
 // Create an instance of the MotorController class.
-MotorController motorController(eepromConfig, aht21Sensor, encoder);
+MotorController motorController(eepromConfig, encoder);
 
 ESP8266WebServer server(80);
 APManager apManager("WMC-Config", server, eepromConfig);
@@ -98,8 +96,6 @@ void setup()
     // Add service to MDNS-SD
     MDNS.addService("http", "tcp", 80);
   }
-
-  aht21Sensor.begin();
 
   motorController.init(rpwmPin, lpwmPin, renPin, lenPin);
   // Define routes for commands.
@@ -183,7 +179,6 @@ void loop()
   else
   { // TODO: do some timing tests here to see how long it takes to run these command
     encoder.update();
-    aht21Sensor.update();
     server.handleClient();
     motorController.update();
     ArduinoOTA.handle(); // Handle OTA
