@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motor Controller Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Motor Controller Dashboard</h1>
+    </header>
+
+    <main>
+        <section class="status">
+            <div class="firmware-version">
+                <label>Firmware Version:</label>
+                <span id="firmwareVersion"></span>
+            </div>
+
+            <div class="serial-number">
+                <label>Serial Number:</label>
+                <span id="serialNumber"></span>
+            </div>
+
+            <div class="calibrated-status">
+                <label>Calibrated Status:</label>
+                <span id="calibratedStatus"></span>
+            </div>
+
+            <div class="pid-values">
+                <label>PID Values:</label>
+                <span id="kpValue"></span>
+                <span id="kiValue"></span>
+                <span id="kdValue"></span>
+            </div>
+
+            <div class="direction">
+                <label>Direction:</label>
+                <span id="direction"></span>
+            </div>
+
+            <div class="min-max-speed">
+                <label>Min Speed:</label>
+                <span id="minSpeed"></span>
+
+                <label>Max Speed:</label>
+                <span id="maxSpeed"></span>
+            </div>
+
+            <div class="position-speed">
+                <label>Position:</label>
+                <span id="position"></span>
+
+                <label>Actual Speed:</label>
+                <span id="actualSpeed"></span>
+            </div>
+
+            <div class="target-speed">
+                <label>Target Speed:</label>
+                <span id="targetSpeed"></span>
+
+                <label>Target Speed RPM:</label>
+                <span id="targetSpeedRPM"></span>
+            </div>
+
+            <div class="temperature-humidity">
+                <label>Temperature:</label>
+                <span id="temperature"></span>
+
+                <label>Humidity:</label>
+                <span id="humidity"></span>
+            </div>
+        </section>
+
+        <section class="control">
+            <h2>Control</h2>
+
+            <div class="pid-sliders">
+                <label for="kpSlider">Proportional Gain (kp):</label>
+                <input type="range" id="kpSlider" min="0" max="100">
+
+                <label for="kiSlider">Integral Gain (ki):</label>
+                <input type="range" id="kiSlider" min="0" max="100">
+
+                <label for="kdSlider">Derivative Gain (kd):</label>
+                <input type="range" id="kdSlider" min="0" max="100">
+            </div>
+
+            <div class="target-speed-slider">
+                <label>Target Speed:</label>
+                <input type="range" id="targetSpeedSlider" min="0" max="1000">
+            </div>
+
+            <div class="action-button">
+                <button id="resetButton">Reset Controller</button>
+                <button id="calibrateButton">Calibrate Motor</button>
+            </div>
+        </section>
+
+        <section class="data-visualizations">
+            <div class="rpm-chart"></div>
+            <div class="temperature-gauge"></div>
+            <div class="humidity-gauge"></div>
+        </section>
+    </main>
+</body>
+</html>
