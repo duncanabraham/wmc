@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <title>Motor Data Visualization</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -10,29 +10,67 @@
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-</head>
-<body>
-    <div class="container">
-        <h1 class="mt-4">Motor Status</h1>
-        <div class="row mt-3">
-          <div class="col-4">
-            <label>Kp</label>
-            <input type="range" min="0" max="3" value="0" step="0.0001" class="slider form-control-range" id="kp">
-            <span id="kp-value">0</span>
-          </div>
-          <div class="col-4">
-            <label>Ki</label>
-            <input type="range" min="0" max="5" value="0" step="0.001" class="slider form-control-range" id="ki">
-            <span id="ki-value">0</span>
-          </div>
-          <div class="col-4">
-            <label>Kd</label>
-            <input type="range" min="0" max="0.1" value="0" step="0.001" class="slider form-control-range" id="kd">
-            <span id="kd-value">0</span>
-          </div>
+    <style>
+    .custom-header {
+      background-color: #4CAF50; /* Example: Green background */
+      color: white; /* White text */
+    }
+  </style>
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row bg-primary text-white">
+        <div class="col-4">
+          <h2>Motor Status</h2>
         </div>
-        <canvas id="speedChart" class="mt-4"></canvas>
-        <script src="chartScript.js"></script>
+        <div class="col-4">
+          <p>Firmware: <span id="firmware-version"></span></p>
+        </div>
+        <div class="col-4">
+          <p>Serial Number: <span id="serial-number"></span></p>
+        </div>
+      </div>
+
+      <!-- Basic Info -->
+      <div class="row custom-header">
+        <div class="col-3">
+          <p>Direction: <span id="direction"></span></p>
+        </div>
+        <div class="col-3">
+          <p>Position: <span id="position"></span></p>
+        </div>
+        <div class="col-3">
+          <p>Temperature: <span id="temperature"></span>°C</p>
+        </div>
+        <div class="col-3">
+          <p>Humidity: <span id="humidity"></span>%</p>
+        </div>
+      </div>
+      <div class="row mt-3">
+        <div class="col-3">
+          <label>Speed (RPM)</label>
+          <input type="range" min="0" max="1000" value="0" step="1" class="slider form-control-range" id="speed">
+          <span id="speed-value">0</span>
+        </div>
+        <div class="col-3">
+          <label>Kp</label>
+          <input type="range" min="0" max="3" value="0" step="0.0001" class="slider form-control-range" id="kp">
+          <span id="kp-value">0</span>
+        </div>
+        <div class="col-3">
+          <label>Ki</label>
+          <input type="range" min="0" max="5" value="0" step="0.001" class="slider form-control-range" id="ki">
+          <span id="ki-value">0</span>
+        </div>
+        <div class="col-3">
+          <label>Kd</label>
+          <input type="range" min="0" max="0.1" value="0" step="0.001" class="slider form-control-range" id="kd">
+          <span id="kd-value">0</span>
+        </div>
+      </div>
+
+      <canvas id="speedChart" class="mt-4"></canvas>
+      <script src="chartScript.js"></script>
     </div>
-</body>
+  </body>
 </html>
